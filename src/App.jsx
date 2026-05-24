@@ -653,6 +653,7 @@ function ProfileTab({ profile, onAddNote }) {
 // ── MAIN CHAT TAB ─────────────────────────────────────────────────────────────
 function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
   const [input, setInput] = useState("");
+  const [directed, setDirected] = useState(null); // null = general, key = specific specialist
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -660,8 +661,9 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
 
   function handleSend() {
     if (!input.trim() || loading) return;
-    onSend(input.trim());
+    onSend(input.trim(), directed);
     setInput("");
+    setDirected(null);
     if (textareaRef.current) textareaRef.current.style.height = "44px";
   }
 
@@ -687,8 +689,8 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
               Just talk. Your panel is listening.
             </div>
             <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-              {["Had a good night's sleep", "Training this morning", "Feeling stressed about work", "Having lamb for dinner", "Padel match tonight"].map(s => (
-                <button key={s} onClick={() => onSend(s)} style={{ background: "#f5f5f5", border: "0.5px solid #e5e5e5", borderRadius: 20, padding: "6px 14px", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
+              {["Slept well last night", "Training this morning", "Stressed about work", "Having lamb for dinner", "Padel match tonight"].map(s => (
+                <button key={s} onClick={() => onSend(s, null)} style={{ background: "#f5f5f5", border: "0.5px solid #e5e5e5", borderRadius: 20, padding: "6px 14px", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
               ))}
             </div>
           </div>
@@ -697,7 +699,12 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
         {messages.map((msg, i) => (
           <div key={i}>
             {msg.role === "user" && (
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                {msg.directed && (
+                  <div style={{ fontSize: 10, color: "#bbb", marginRight: 4 }}>
+                    → {SPECIALISTS[msg.directed]?.name}
+                  </div>
+                )}
                 <div className="user-bubble">{msg.content}</div>
               </div>
             )}
@@ -731,18 +738,53 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="panel-chips">
-        {ACTIVE_SPECIALISTS.map(key => (
-          <div className="chip" key={key}>
-            <div className="chip-av">{SPECIALISTS[key].avatar}</div>
-            <span className="chip-name">{SPECIALISTS[key].name}</span>
-          </div>
-        ))}
+      {/* Direct selector */}
+      <div style={{ padding: "8px 16px 4px", borderTop: "0.5px solid #f5f5f5", flexShrink: 0 }}>
+        <div style={{ fontSize: 10, color: "#ccc", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+          {directed ? `Directing to ${SPECIALISTS[directed]?.name} — tap to clear` : "Direct to a specialist"}
+        </div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+          {ACTIVE_SPECIALISTS.map(key => {
+            const sp = SPECIALISTS[key];
+            const isSelected = directed === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setDirected(isSelected ? null : key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  background: isSelected ? "#000" : "#f5f5f5",
+                  border: isSelected ? "none" : "0.5px solid #e8e8e8",
+                  borderRadius: 100, padding: "5px 10px 5px 6px",
+                  cursor: "pointer", flexShrink: 0, transition: "all 0.15s",
+                  fontFamily: "inherit",
+                }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: isSelected ? "#fff" : "#e0e0e0",
+                  color: isSelected ? "#000" : "#666",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 8, fontWeight: 700, flexShrink: 0,
+                }}>{sp.avatar}</div>
+                <span style={{ fontSize: 11, color: isSelected ? "#fff" : "#888", fontWeight: isSelected ? 600 : 400 }}>{sp.name}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="chat-input-area">
         <div className="chat-input-wrapper">
-          <textarea ref={textareaRef} className="chat-textarea" value={input} onChange={handleInput} onKeyDown={handleKeyDown} placeholder="Talk to your panel…" rows={1} />
+          <textarea
+            ref={textareaRef}
+            className="chat-textarea"
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder={directed ? `Message ${SPECIALISTS[directed]?.name}…` : "Talk to your panel…"}
+            rows={1}
+          />
           <button className="send-btn" onClick={handleSend} disabled={loading || !input.trim()}>→</button>
         </div>
       </div>
@@ -857,15 +899,16 @@ export default function App() {
     } catch { /* silent */ }
   }
 
-  async function handleSend(userInput) {
+  async function handleSend(userInput, directed = null) {
     if (!userInput.trim() || loading) return;
     setLoading(true);
 
-    const userMsg = { role: "user", content: userInput };
+    const userMsg = { role: "user", content: userInput, directed };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
 
-    const relevantKeys = getRelevantSpecialists(userInput);
+    // If directed, only that specialist responds (plus Marcus check)
+    const relevantKeys = directed ? [directed] : getRelevantSpecialists(userInput);
     setLoadingSpecialists(relevantKeys);
 
     const trainingContext = buildTrainingContext(trainingSessions);
