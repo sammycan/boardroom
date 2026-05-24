@@ -106,40 +106,110 @@ const ACTIVE_SPECIALISTS = ["davo", "priya", "jonah", "kai", "sofia", "ren", "el
 
 // ── ONBOARDING ────────────────────────────────────────────────────────────────
 const ONBOARDING_STEPS = [
-  { id: "name", question: "What should the panel call you?", placeholder: "Your first name", type: "text" },
-  { id: "work", question: "What do you do for work?", placeholder: "e.g. I run a small procurement company, lead a team of 8…", type: "textarea" },
-  { id: "training", question: "What's your training setup?", placeholder: "e.g. Home gym with squat rack, barbells, kettlebells. Train 3x per week mornings…", type: "textarea" },
-  { id: "goals", question: "What are you trying to optimise?", placeholder: "e.g. Overall health, strength, energy, sleep, mental clarity…", type: "textarea" },
-  { id: "context", question: "Anything else the panel should know about you?", placeholder: "Injuries, health conditions, sports you play, things you're learning, life context… (optional)", type: "textarea" },
+  {
+    id: "name",
+    question: "What should the panel call you?",
+    placeholder: "First name",
+    type: "text",
+    optional: false,
+  },
+  {
+    id: "age_gender_weight",
+    question: "A few basics",
+    type: "multi",
+    fields: [
+      { id: "age", label: "Age", placeholder: "32", keyboard: "numeric" },
+      { id: "gender", label: "Gender", placeholder: "Male / Female / Other" },
+      { id: "weight", label: "Weight (kg)", placeholder: "82", keyboard: "numeric" },
+    ],
+    optional: false,
+  },
+  {
+    id: "work",
+    question: "What do you do for work?",
+    placeholder: "I run a small business, lead a team of 8, mostly operations and client work…",
+    type: "textarea",
+    optional: false,
+  },
+  {
+    id: "training",
+    question: "What\'s your training setup?",
+    placeholder: "Home gym with squat rack and barbells, train 3 mornings a week, been lifting for 2 years…",
+    type: "textarea",
+    optional: false,
+  },
+  {
+    id: "goal",
+    question: "What do you most want to improve?",
+    type: "chips",
+    options: ["Overall health", "Strength & muscle", "Fat loss", "Energy & sleep", "Mental clarity", "Sport performance", "Mobility & flexibility", "Stress management"],
+    optional: false,
+  },
+  {
+    id: "context",
+    question: "Anything else worth knowing?",
+    placeholder: "Injuries, health conditions, sports you play, dietary restrictions, big life stressors… (optional)",
+    type: "textarea",
+    optional: true,
+  },
 ];
 
 function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [value, setValue] = useState("");
+  const [multiValues, setMultiValues] = useState({});
+  const [selectedChips, setSelectedChips] = useState([]);
   const [building, setBuilding] = useState(false);
 
   const current = ONBOARDING_STEPS[step];
   const isLast = step === ONBOARDING_STEPS.length - 1;
-  const progress = ((step) / ONBOARDING_STEPS.length) * 100;
+  const progress = (step / ONBOARDING_STEPS.length) * 100;
+
+  function canProceed() {
+    if (current.optional) return true;
+    if (current.type === "multi") return Object.values(multiValues).some(v => v.trim());
+    if (current.type === "chips") return selectedChips.length > 0;
+    return value.trim().length > 0;
+  }
 
   async function handleNext() {
-    const updated = { ...answers, [current.id]: value };
-    setAnswers(updated);
+    let updatedAnswers = { ...answers };
+    if (current.type === "multi") {
+      updatedAnswers[current.id] = current.fields.map(f => `${f.label}: ${multiValues[f.id] || "not provided"}`).join(", ");
+      updatedAnswers = { ...updatedAnswers, ...multiValues };
+    } else if (current.type === "chips") {
+      updatedAnswers[current.id] = selectedChips.join(", ");
+    } else {
+      updatedAnswers[current.id] = value;
+    }
+    setAnswers(updatedAnswers);
 
     if (isLast) {
       setBuilding(true);
-      const profile = await buildProfileFromAnswers(updated);
-      onComplete(updated.name || "there", profile);
+      const profile = await buildProfileFromAnswers(updatedAnswers);
+      onComplete(updatedAnswers.name || "there", profile);
     } else {
       setStep(s => s + 1);
-      setValue(answers[ONBOARDING_STEPS[step + 1]?.id] || "");
+      const next = ONBOARDING_STEPS[step + 1];
+      if (next.type === "multi") setMultiValues({});
+      else if (next.type === "chips") setSelectedChips(updatedAnswers[next.id] ? updatedAnswers[next.id].split(", ") : []);
+      else setValue(updatedAnswers[next.id] || "");
     }
   }
 
   function handleBack() {
+    const prev = ONBOARDING_STEPS[step - 1];
     setStep(s => s - 1);
-    setValue(answers[ONBOARDING_STEPS[step - 1]?.id] || "");
+    if (prev.type === "multi") {
+      const vals = {};
+      prev.fields.forEach(f => { vals[f.id] = answers[f.id] || ""; });
+      setMultiValues(vals);
+    } else if (prev.type === "chips") {
+      setSelectedChips(answers[prev.id] ? answers[prev.id].split(", ") : []);
+    } else {
+      setValue(answers[prev.id] || "");
+    }
   }
 
   async function buildProfileFromAnswers(ans) {
@@ -150,126 +220,150 @@ function Onboarding({ onComplete }) {
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
           max_tokens: 800,
-          system: `You are building an initial profile for a new member of The Panel — a 12-specialist performance and life optimisation system. Based on their onboarding answers, create a structured profile using these sections: IDENTITY, WORK & LIFE, TRAINING SETUP, GOALS, HEALTH & BODY, MIND & MOTIVATION, PATTERNS & OBSERVATIONS. Keep it factual, specific, and under 500 words. Use their exact words where possible. End PATTERNS & OBSERVATIONS with "Profile building — panel learning from first conversation." Output only the profile text, no preamble.`,
-          messages: [{ role: "user", content: `Name: ${ans.name}
-Work: ${ans.work}
-Training: ${ans.training}
-Goals: ${ans.goals}
-Context: ${ans.context || "Nothing additional."}` }],
+          system: `You are building an initial profile for a new member of The Panel — a 12-specialist life and performance optimisation system. Based on their onboarding answers, create a structured profile with these sections: IDENTITY, WORK & LIFE, TRAINING SETUP, GOALS, HEALTH & BODY, MIND & MOTIVATION, PATTERNS & OBSERVATIONS. Keep it factual, specific, under 500 words. Use their exact words where possible. End PATTERNS & OBSERVATIONS with "Profile building — panel learning from first conversation." Output only the profile text.`,
+          messages: [{ role: "user", content: `Name: ${ans.name}\nAge: ${ans.age || "not provided"}\nGender: ${ans.gender || "not provided"}\nWeight: ${ans.weight || "not provided"}kg\nWork: ${ans.work}\nTraining: ${ans.training}\nGoals: ${ans.goal}\nContext: ${ans.context || "Nothing additional."}` }],
         }),
       });
       const data = await res.json();
       return data.content?.find(b => b.type === "text")?.text || buildFallbackProfile(ans);
-    } catch {
-      return buildFallbackProfile(ans);
-    }
+    } catch { return buildFallbackProfile(ans); }
   }
 
   function buildFallbackProfile(ans) {
-    return `IDENTITY
-${ans.name}. 
-
-WORK & LIFE
-${ans.work}
-
-TRAINING SETUP
-${ans.training}
-
-GOALS
-${ans.goals}
-
-HEALTH & BODY
-Nothing recorded yet.
-
-MIND & MOTIVATION
-Nothing recorded yet.
-
-PATTERNS & OBSERVATIONS
-Profile building — panel learning from first conversation.`;
+    return `IDENTITY\n${ans.name}${ans.age ? ", " + ans.age : ""}${ans.gender ? ", " + ans.gender : ""}${ans.weight ? ", " + ans.weight + "kg" : ""}\n\nWORK & LIFE\n${ans.work}\n\nTRAINING SETUP\n${ans.training}\n\nGOALS\n${ans.goal}\n\nHEALTH & BODY\n${ans.context || "Nothing recorded yet."}\n\nMIND & MOTIVATION\nNothing recorded yet.\n\nPATTERNS & OBSERVATIONS\nProfile building — panel learning from first conversation.`;
   }
 
   if (building) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", padding: "40px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif" }}>
-        <div style={{ fontSize: 13, color: "#bbb", marginBottom: 20 }}>Building your profile…</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: "#000", animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />)}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif", background: "#fff" }}>
+        <div style={{ fontSize: 13, color: "#bbb", marginBottom: 20, textAlign: "center" }}>Building your profile…<br /><span style={{ fontSize: 11, color: "#ddd", marginTop: 4, display: "block" }}>Your panel is getting ready</span></div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[0,1,2].map(i => <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "#000", animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif", maxWidth: 480, margin: "0 auto", padding: "60px 32px", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <style>{`@keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }`}</style>
-      
-      {/* Logo */}
-      <div style={{ marginBottom: 48 }}>
-        <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 6 }}>Optimal Human</div>
-        <div style={{ fontSize: 28, fontWeight: 300, letterSpacing: "-0.02em" }}>The Panel</div>
+    <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif", background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+        .ob-input { width: 100%; background: #f7f7f7; border: 0.5px solid #e8e8e8; border-radius: 14px; padding: 16px 18px; font-size: 16px; color: #000; font-family: inherit; outline: none; -webkit-appearance: none; }
+        .ob-input:focus { border-color: #000; background: #fff; }
+        .ob-textarea { width: 100%; background: #f7f7f7; border: 0.5px solid #e8e8e8; border-radius: 14px; padding: 16px 18px; font-size: 15px; color: #000; font-family: inherit; outline: none; resize: none; line-height: 1.6; -webkit-appearance: none; }
+        .ob-textarea:focus { border-color: #000; background: #fff; }
+        .ob-input::placeholder, .ob-textarea::placeholder { color: #ccc; }
+        .chip-option { border: 0.5px solid #e5e5e5; border-radius: 100px; padding: 10px 18px; font-size: 14px; color: #666; background: #f9f9f9; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; }
+        .chip-option.selected { background: #000; color: #fff; border-color: #000; }
+      `}</style>
+
+      {/* Safe area top */}
+      <div style={{ paddingTop: "env(safe-area-inset-top, 20px)" }} />
+
+      {/* Header */}
+      <div style={{ padding: "24px 28px 20px", flexShrink: 0 }}>
+        <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 4 }}>Optimal Human</div>
+        <div style={{ fontSize: 24, fontWeight: 300, letterSpacing: "-0.02em" }}>The Panel</div>
       </div>
 
-      {/* Progress */}
-      <div style={{ height: 1, background: "#f0f0f0", marginBottom: 48, borderRadius: 1 }}>
+      {/* Progress bar */}
+      <div style={{ height: 1, background: "#f0f0f0", margin: "0 28px", borderRadius: 1, flexShrink: 0 }}>
         <div style={{ height: 1, background: "#000", width: `${progress}%`, transition: "width 0.4s ease", borderRadius: 1 }} />
       </div>
 
-      {/* Step counter */}
-      <div style={{ fontSize: 11, color: "#bbb", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-        {step + 1} of {ONBOARDING_STEPS.length}
-      </div>
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "32px 28px 0", display: "flex", flexDirection: "column" }}>
 
-      {/* Question */}
-      <div style={{ fontSize: 22, fontWeight: 300, color: "#000", letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 32, flex: 1 }}>
-        {current.question}
-      </div>
-
-      {/* Input */}
-      {current.type === "text" ? (
-        <input
-          autoFocus
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && (value.trim() || isLast) && handleNext()}
-          placeholder={current.placeholder}
-          style={{ width: "100%", background: "#f9f9f9", border: "0.5px solid #e5e5e5", borderRadius: 12, padding: "16px 20px", fontSize: 16, color: "#000", outline: "none", fontFamily: "inherit", marginBottom: 16, transition: "border-color 0.15s" }}
-          onFocus={e => e.target.style.borderColor = "#000"}
-          onBlur={e => e.target.style.borderColor = "#e5e5e5"}
-        />
-      ) : (
-        <textarea
-          autoFocus
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder={current.placeholder}
-          rows={4}
-          style={{ width: "100%", background: "#f9f9f9", border: "0.5px solid #e5e5e5", borderRadius: 12, padding: "16px 20px", fontSize: 15, color: "#000", outline: "none", fontFamily: "inherit", resize: "none", lineHeight: 1.6, marginBottom: 16, transition: "border-color 0.15s" }}
-          onFocus={e => e.target.style.borderColor = "#000"}
-          onBlur={e => e.target.style.borderColor = "#e5e5e5"}
-        />
-      )}
-
-      {/* Buttons */}
-      <div style={{ display: "flex", gap: 10 }}>
-        {step > 0 && (
-          <button onClick={handleBack} style={{ flex: 1, background: "#f5f5f5", color: "#000", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
-            Back
-          </button>
-        )}
-        <button
-          onClick={handleNext}
-          disabled={!value.trim() && !isLast}
-          style={{ flex: 2, background: value.trim() || isLast ? "#000" : "#f0f0f0", color: value.trim() || isLast ? "#fff" : "#ccc", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 500, cursor: value.trim() || isLast ? "pointer" : "default", fontFamily: "inherit", transition: "all 0.15s" }}
-        >
-          {isLast ? "Meet your panel →" : "Continue →"}
-        </button>
-      </div>
-
-      {isLast && (
-        <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#ccc" }}>
-          This step is optional — tap continue to skip
+        <div style={{ fontSize: 11, color: "#bbb", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {step + 1} of {ONBOARDING_STEPS.length}
         </div>
-      )}
+
+        <div style={{ fontSize: 22, fontWeight: 300, color: "#000", letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 28 }}>
+          {current.question}
+        </div>
+
+        {/* Text input */}
+        {current.type === "text" && (
+          <input
+            autoFocus
+            className="ob-input"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && canProceed() && handleNext()}
+            placeholder={current.placeholder}
+          />
+        )}
+
+        {/* Textarea */}
+        {current.type === "textarea" && (
+          <textarea
+            autoFocus
+            className="ob-textarea"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder={current.placeholder}
+            rows={4}
+          />
+        )}
+
+        {/* Multi fields */}
+        {current.type === "multi" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {current.fields.map(f => (
+              <div key={f.id}>
+                <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>{f.label}</div>
+                <input
+                  className="ob-input"
+                  type={f.keyboard === "numeric" ? "number" : "text"}
+                  inputMode={f.keyboard || "text"}
+                  value={multiValues[f.id] || ""}
+                  onChange={e => setMultiValues(v => ({ ...v, [f.id]: e.target.value }))}
+                  placeholder={f.placeholder}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Chips */}
+        {current.type === "chips" && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {current.options.map(opt => (
+              <button
+                key={opt}
+                className={`chip-option ${selectedChips.includes(opt) ? "selected" : ""}`}
+                onClick={() => setSelectedChips(prev => prev.includes(opt) ? prev.filter(c => c !== opt) : [...prev, opt])}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {current.optional && (
+          <div style={{ fontSize: 12, color: "#ccc", marginTop: 12 }}>Optional — tap Continue to skip</div>
+        )}
+
+        <div style={{ flex: 1, minHeight: 32 }} />
+      </div>
+
+      {/* Fixed bottom buttons */}
+      <div style={{ padding: "16px 28px", paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "0.5px solid #f5f5f5", background: "#fff", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          {step > 0 && (
+            <button onClick={handleBack} style={{ flex: 1, background: "#f5f5f5", color: "#000", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>
+              ←
+            </button>
+          )}
+          <button
+            onClick={handleNext}
+            disabled={!canProceed()}
+            style={{ flex: 4, background: canProceed() ? "#000" : "#f0f0f0", color: canProceed() ? "#fff" : "#ccc", border: "none", borderRadius: 14, padding: "16px", fontSize: 15, fontWeight: 500, cursor: canProceed() ? "pointer" : "default", fontFamily: "inherit", transition: "all 0.15s" }}
+          >
+            {isLast ? "Meet your panel →" : "Continue →"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
