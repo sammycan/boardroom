@@ -416,19 +416,22 @@ function buildTrainingContext(sessions) {
   return `\n\nRecent training:\n${lines.join("\n")}`;
 }
 
-function getRelevantSpecialists(message) {
+function getLeadAndSupport(message) {
   const lower = message.toLowerCase();
+  // Find all relevant specialists
   const relevant = ACTIVE_SPECIALISTS.filter(key => {
     const sp = SPECIALISTS[key];
     return sp.triggers.some(t => lower.includes(t));
   });
-  // Always include at least 2-3 specialists, add dr noah and carla as defaults for life diary
-  if (relevant.length === 0) return ["noah", "carla", "davo"];
-  if (relevant.length === 1) { 
-    if (!relevant.includes("noah")) relevant.push("noah");
-    if (!relevant.includes("carla")) relevant.push("carla");
+  if (relevant.length === 0) {
+    return { lead: "noah", support: ["carla", "ellis"] };
   }
-  return [...new Set(relevant)];
+  // Lead is the first most relevant, support are the rest (max 3)
+  const lead = relevant[0];
+  const support = relevant.slice(1, 4);
+  // Always add noah as support if not already there and not lead
+  if (lead !== "noah" && !support.includes("noah")) support.push("noah");
+  return { lead, support: [...new Set(support)].slice(0, 3) };
 }
 
 // ── STYLES ────────────────────────────────────────────────────────────────────
@@ -723,16 +726,12 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
         ))}
 
         {loading && loadingSpecialists.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {loadingSpecialists.map(key => (
-              <div key={key} className="specialist-bubble" style={{ opacity: 0.5 }}>
-                <div className="specialist-name-tag">
-                  <div className="sp-avatar">{SPECIALISTS[key]?.avatar}</div>
-                  {SPECIALISTS[key]?.name} is thinking
-                  <div className="loading-dot" style={{ marginLeft: 4 }} />
-                </div>
-              </div>
-            ))}
+          <div className="specialist-bubble" style={{ opacity: 0.6, alignSelf: "flex-start" }}>
+            <div className="specialist-name-tag">
+              <div className="sp-avatar">{SPECIALISTS[loadingSpecialists[0]]?.avatar}</div>
+              {SPECIALISTS[loadingSpecialists[0]]?.name} is thinking
+              <div className="loading-dot" style={{ marginLeft: 4 }} />
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
@@ -834,20 +833,50 @@ export default function App() {
 
   if (!onboarded) return <Onboarding onComplete={handleOnboardingComplete} />;
 
-  async function callSpecialist(key, userMessage, conversationHistory, trainingContext) {
-    const sp = SPECIALISTS[key];
-    const historyMessages = conversationHistory.slice(-10).map(m => ({
+  async function getSupportInsights(supportKeys, userMessage, conversationHistory, trainingContext) {
+    // Silently gather insights from support specialists
+    const insights = [];
+    for (const key of supportKeys) {
+      const sp = SPECIALISTS[key];
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5",
+            max_tokens: 200,
+            system: `${sp.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}\n\nProvide a brief insight (1-2 sentences max) from your specific domain only. This will be shared with the lead specialist to inform their response. Be specific and concise.`,
+            messages: [{ role: "user", content: userMessage }],
+          }),
+        });
+        const data = await res.json();
+        const text = data.content?.find(b => b.type === "text")?.text || "";
+        if (text) insights.push({ specialist: key, name: sp.name, title: sp.title, insight: text });
+      } catch { /* silent */ }
+    }
+    return insights;
+  }
+
+  async function getLeadResponse(leadKey, userMessage, conversationHistory, trainingContext, supportInsights, directed) {
+    const sp = SPECIALISTS[leadKey];
+    const historyMessages = conversationHistory.slice(-8).map(m => ({
       role: m.role === "user" ? "user" : "assistant",
-      content: m.role === "specialist" ? `[${SPECIALISTS[m.specialist]?.name}]: ${m.content}` : m.content,
+      content: m.role === "specialist" ? m.content : m.content,
     }));
+
+    const insightsText = supportInsights.length > 0
+      ? `\n\nYour colleagues have flagged:\n${supportInsights.map(i => `${i.name} (${i.title}): ${i.insight}`).join("\n")}`
+      : "";
+
+    const directedNote = directed ? "" : `\n\nYou are the lead responder for this message. Integrate relevant insights from colleagues naturally where it adds value — don't just list them. Speak as yourself but with the full picture.`;
 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 500,
-        system: `${sp.personality}\n\nYou are part of a 12-person PA panel helping optimise this person's life. Respond only from your domain. Be natural, specific, and proactive. Ask one follow-up question if you need more info. 2-4 sentences max. No bullet points.\n\nATHLETE PROFILE:\n${profile}${trainingContext}`,
+        max_tokens: 300,
+        system: `${sp.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}${insightsText}${directedNote}\n\nBe conversational, specific, and direct. 2-4 sentences. No bullet points. Ask one follow-up question only if genuinely needed.`,
         messages: [...historyMessages, { role: "user", content: userMessage }],
       }),
     });
@@ -855,30 +884,38 @@ export default function App() {
     return data.content?.find(b => b.type === "text")?.text || "";
   }
 
-  async function checkMarcus(conversationHistory, trainingContext) {
-    const recentMessages = conversationHistory.slice(-6);
-    const hasDecision = recentMessages.some(m => m.role === "user" && SPECIALISTS.marcus.triggers.some(t => m.content.toLowerCase().includes(t)));
-    const hasEnoughContext = recentMessages.filter(m => m.role === "specialist").length >= 3;
-    if (!hasDecision && !hasEnoughContext) return null;
+  async function checkMarcus(userMessage, leadResponse, conversationHistory, trainingContext) {
+    // Marcus only speaks for big picture patterns or important decisions
+    const recentUserMessages = conversationHistory.filter(m => m.role === "user").slice(-5);
+    const triggerWords = SPECIALISTS.marcus.triggers;
+    const hasTrigger = triggerWords.some(t => userMessage.toLowerCase().includes(t));
+    const conversationLength = conversationHistory.length;
+    // Marcus weighs in occasionally on patterns, not every message
+    if (!hasTrigger && conversationLength % 8 !== 0) return null;
 
-    const historyStr = recentMessages.map(m => m.role === "user" ? `Sam: ${m.content}` : `${SPECIALISTS[m.specialist]?.name}: ${m.content}`).join("\n");
+    const historyStr = conversationHistory.slice(-6).map(m =>
+      m.role === "user" ? `User: ${m.content}` : `${SPECIALISTS[m.specialist]?.name}: ${m.content}`
+    ).join("\n");
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 300,
-        system: `${SPECIALISTS.marcus.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}\n\nOnly respond if you have something genuinely important to add — a pattern, a conflict between specialists, or a clear decision needed. If there's nothing worth adding, respond with exactly: PASS`,
-        messages: [{ role: "user", content: `Recent conversation:\n${historyStr}\n\nDo you have something important to add?` }],
+        max_tokens: 200,
+        system: `${SPECIALISTS.marcus.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}\n\nOnly respond if there is a genuinely important pattern, conflict, or decision. If not, respond with exactly: PASS`,
+        messages: [{ role: "user", content: `Recent conversation:\n${historyStr}\n\nLatest response from panel: ${leadResponse}\n\nAnything important to add?` }],
       }),
     });
     const data = await res.json();
     const text = data.content?.find(b => b.type === "text")?.text || "";
-    return text === "PASS" || text.startsWith("PASS") ? null : text;
+    return text.startsWith("PASS") ? null : text;
   }
 
-  async function updateProfile(newMessages) {
-    const recentStr = newMessages.slice(-6).map(m => m.role === "user" ? `Sam: ${m.content}` : `${SPECIALISTS[m.specialist]?.name}: ${m.content}`).join("\n");
+  async function updateProfile(allMessages) {
+    const recentStr = allMessages.slice(-4).map(m =>
+      m.role === "user" ? `User: ${m.content}` : `${SPECIALISTS[m.specialist]?.name}: ${m.content}`
+    ).join("\n");
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -886,8 +923,8 @@ export default function App() {
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
           max_tokens: 800,
-          system: `You are maintaining a living profile of an athlete/person across time. Update the profile with new observations. Keep it factual and specific. Preserve existing info unless superseded. Add new patterns. Keep under 600 words. Same section structure. Output only the updated profile text, no preamble.`,
-          messages: [{ role: "user", content: `CURRENT PROFILE:\n${profile}\n\nRECENT CONVERSATION:\n${recentStr}\n\nUpdate the profile with anything new learned.` }],
+          system: `Maintain a living profile. Update with new observations. Factual and specific. Preserve existing info unless superseded. Under 600 words. Same section structure. Output only the profile text.`,
+          messages: [{ role: "user", content: `CURRENT PROFILE:\n${profile}\n\nRECENT CONVERSATION:\n${recentStr}\n\nUpdate with anything new.` }],
         }),
       });
       const data = await res.json();
@@ -907,40 +944,45 @@ export default function App() {
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
 
-    // If directed, only that specialist responds (plus Marcus check)
-    const relevantKeys = directed ? [directed] : getRelevantSpecialists(userInput);
-    setLoadingSpecialists(relevantKeys);
-
     const trainingContext = buildTrainingContext(trainingSessions);
-    const specialistMessages = [];
 
-    for (const key of relevantKeys) {
-      try {
-        const response = await callSpecialist(key, userInput, newMessages, trainingContext);
-        const spMsg = { role: "specialist", specialist: key, content: response };
-        specialistMessages.push(spMsg);
-        setMessages(prev => [...prev, spMsg]);
-        setLoadingSpecialists(prev => prev.filter(k => k !== key));
-      } catch {
-        setLoadingSpecialists(prev => prev.filter(k => k !== key));
-      }
+    let leadKey, supportKeys;
+    if (directed) {
+      leadKey = directed;
+      supportKeys = [];
+    } else {
+      const routing = getLeadAndSupport(userInput);
+      leadKey = routing.lead;
+      supportKeys = routing.support;
     }
+
+    setLoadingSpecialists([leadKey]);
+
+    // Get support insights silently in background
+    const supportInsights = await getSupportInsights(supportKeys, userInput, newMessages, trainingContext);
+
+    // Get lead response with support context
+    let leadResponse = "";
+    try {
+      leadResponse = await getLeadResponse(leadKey, userInput, newMessages, trainingContext, supportInsights, directed);
+    } catch { leadResponse = "Give me a moment — try again."; }
+
+    const leadMsg = { role: "specialist", specialist: leadKey, content: leadResponse };
+    const allMessages = [...newMessages, leadMsg];
+    setMessages(allMessages);
+    setLoadingSpecialists([]);
 
     // Check if Marcus should weigh in
-    const allMessages = [...newMessages, ...specialistMessages];
-    const marcusResponse = await checkMarcus(allMessages, trainingContext);
+    const marcusResponse = await checkMarcus(userInput, leadResponse, allMessages, trainingContext);
+    let finalMessages = allMessages;
     if (marcusResponse) {
       const marcusMsg = { role: "specialist", specialist: "marcus", content: marcusResponse };
-      specialistMessages.push(marcusMsg);
-      setMessages(prev => [...prev, marcusMsg]);
+      finalMessages = [...allMessages, marcusMsg];
+      setMessages(finalMessages);
     }
 
-    const finalMessages = [...newMessages, ...specialistMessages];
-    setMessages(finalMessages);
-
     // Save conversation
-    const convId = Date.now();
-    const conv = { id: convId, user_id: userId, date: new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), messages: finalMessages, created_at: new Date().toISOString() };
+    const conv = { id: Date.now(), user_id: userId, date: new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), messages: finalMessages, created_at: new Date().toISOString() };
     await supabase.from("conversations").insert(conv);
     setConversations(prev => [conv, ...prev]);
 
@@ -948,7 +990,6 @@ export default function App() {
     updateProfile(finalMessages);
 
     setLoading(false);
-    setLoadingSpecialists([]);
   }
 
   async function handleLogSession(session) {
