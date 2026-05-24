@@ -1,12 +1,17 @@
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(200).end();
-  }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    const rawBody = Buffer.concat(chunks).toString();
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -14,11 +19,10 @@ export default async function handler(req, res) {
         'x-api-key': process.env.VITE_ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify(req.body),
+      body: rawBody,
     });
 
     const data = await response.json();
-    res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(response.status).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
