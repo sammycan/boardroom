@@ -1,0 +1,15 @@
+{
+  "name": "The Boardroom",
+  "short_name": "Boardroom",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060606",
+  "theme_color": "#060606",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
