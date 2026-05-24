@@ -1,8 +1,6 @@
-import { buffer } from 'micro';
-
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: true,
   },
 };
 
@@ -13,23 +11,16 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  try {
-    const buf = await buffer(req);
-    const rawBody = buf.toString('utf8');
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.VITE_ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(req.body),
+  });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.VITE_ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: rawBody,
-    });
-
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const data = await response.json();
+  res.status(response.status).json(data);
 }
