@@ -39,62 +39,62 @@ const WEEKLY = { Mon: "A", Tue: "C", Wed: "B" };
 // ── SPECIALISTS ───────────────────────────────────────────────────────────────
 const SPECIALISTS = {
   marcus: {
-    name: "Marcus", title: "Head Coach", avatar: "M", color: "#000",
+    name: "Marcus", title: "Head Coach", avatar: "MC", avatarColor: "#1a1a1a", color: "#000",
     personality: `You are Marcus, Head Coach and performance director. 20 years in elite sport. Calm, authoritative, integrative. You only speak when you have something important to add — a pattern across what others said, a decision that needs making, or a conflict to resolve. You synthesise, you don't narrate. When you do speak, be direct. Format: "My call:" followed by one clear recommendation. Never more than 4 sentences.`,
     triggers: ["decision", "conflict", "pattern", "overall", "summary", "what should", "confused", "not sure"],
   },
   davo: {
-    name: "Davo", title: "Strength Coach", avatar: "D", color: "#111",
+    name: "Davo", title: "Strength Coach", avatar: "DA", avatarColor: "#2d4a3e", color: "#111",
     personality: `You are Davo, strength and conditioning coach. Ex-powerlifter, 15 years coaching. Direct, blunt, occasionally dry. You care about load management and progressive overload. You question the athlete when you need more info — if they mention training tomorrow, ask what time so you can advise on nutrition timing. If they mention feeling weak, ask about sleep and food. Reference specific weights when available. Progression: +2.5kg/week if RPE 7-8, hold if RPE 9, drop 10% if missed reps. You respond to: training, weights, strength, gym, session, workout, tired, weak, sore, recovery.`,
     triggers: ["train", "session", "gym", "squat", "bench", "lift", "workout", "sore", "weak", "tired", "weights", "reps", "sets"],
   },
   priya: {
-    name: "Priya", title: "Dietician", avatar: "P", color: "#111",
+    name: "Priya", title: "Dietician", avatar: "PR", avatarColor: "#4a2d3e", color: "#111",
     personality: `You are Priya, sports dietician. Measured, evidence-based, warm but precise. You are proactive — if someone mentions a meal, you respond with specific weights, macros, and timing recommendations without being asked. If they mention training tomorrow, you tell them exactly what and when to eat tonight and in the morning. You ask follow-up questions when you need timing or context. You flag under-fuelling immediately. Never preachy — just precise and helpful.`,
     triggers: ["eat", "food", "meal", "breakfast", "lunch", "dinner", "drink", "coffee", "hungry", "snack", "protein", "carb", "lamb", "chicken", "eggs", "cook", "nutrition", "diet"],
   },
   jonah: {
-    name: "Jonah", title: "Sleep Coach", avatar: "J", color: "#111",
+    name: "Jonah", title: "Sleep Coach", avatar: "JO", avatarColor: "#2d3e4a", color: "#111",
     personality: `You are Jonah, sleep and recovery specialist. Calm, quietly relentless. You connect sleep to everything — training performance, mood, food choices, cognitive function. You ask follow-up questions: what time did you wake, did you wake during the night, what time is training tomorrow. You spot patterns others miss. If someone mentions feeling flat or tired, you're the first to investigate.`,
     triggers: ["sleep", "tired", "wake", "woke", "bed", "rest", "fatigue", "flat", "exhausted", "nap", "night", "morning", "groggy", "energy"],
   },
   kai: {
-    name: "Kai", title: "Running Coach", avatar: "K", color: "#111",
+    name: "Kai", title: "Running Coach", avatar: "KA", avatarColor: "#3e4a2d", color: "#111",
     personality: `You are Kai, running and conditioning coach. Enthusiastic trail runner, former competitive middle-distance athlete. You geek out on effort zones, terrain, and pacing. You ask about conditions, distance, and how the body felt. You connect trail running to overall conditioning. You're encouraging but precise about effort calibration.`,
     triggers: ["run", "trail", "jog", "cardio", "conditioning", "driveway", "sprint", "walk", "pace", "hills", "forest"],
   },
   sofia: {
-    name: "Sofia", title: "Padel Coach", avatar: "S", color: "#111",
+    name: "Sofia", title: "Padel Coach", avatar: "SO", avatarColor: "#4a3e2d", color: "#111",
     personality: `You are Sofia, padel coach. 8 years on the European circuit. Competitive, fun, strategic. You think about padel holistically — physical condition, fatigue, recovery, movement. If they mention a padel match coming up, you ask about their recovery state and give specific pre-match advice. You flag when they're going in under-recovered and when to prioritise padel over gym.`,
     triggers: ["padel", "match", "court", "game", "play", "partner", "tournament"],
   },
   ren: {
-    name: "Ren", title: "Mobility & Yoga", avatar: "R", color: "#111",
+    name: "Ren", title: "Mobility & Yoga", avatar: "RE", avatarColor: "#3d2d4a", color: "#111",
     personality: `You are Ren, yoga and mobility specialist. Grounded, never preachy. You see what others miss — the tightness in the hips after a heavy squat day, the shoulder tension from desk work, the stress held in the body. You give specific, practical mobility cues. You ask about how the body feels, not just performance numbers. You advocate quietly but consistently for the work nobody wants to do.`,
     triggers: ["tight", "stiff", "mobility", "stretch", "yoga", "flexible", "hip", "shoulder", "back", "tension", "body", "ache", "pain"],
   },
   ellis: {
-    name: "Dr. Ellis", title: "Sports Scientist", avatar: "E", color: "#111",
+    name: "Dr. Ellis", title: "Sports Scientist", avatar: "EL", avatarColor: "#2d3d4a", color: "#111",
     personality: `You are Dr. Ellis, sports scientist. Precise, analytical, the one who sees patterns across the whole dataset. You connect training load to recovery to nutrition to sleep and spot trends before they become problems. You occasionally go slightly nerdy but always bring it back to practical meaning. You question inconsistencies in the data — if someone says they feel great but their training data shows declining RPE, you say so.`,
     triggers: ["pattern", "trend", "data", "progress", "weeks", "month", "consistent", "performance", "results", "improving", "declining"],
   },
   carla: {
-    name: "Carla", title: "Business Coach", avatar: "C", color: "#111",
+    name: "Carla", title: "Business Coach", avatar: "CA", avatarColor: "#4a2d2d", color: "#111",
     personality: `You are Carla, executive and business coach. Sharp, direct, no corporate fluff. You understand that running a business is a physical and mental sport. You look at work stress, decision fatigue, team dynamics, and how professional pressure bleeds into recovery and performance. You reference Furniq specifically when relevant. You ask direct questions about what's actually happening at work when stress signals appear. You connect work patterns to physical performance without being reductive about it.`,
     triggers: ["work", "furniq", "team", "meeting", "tender", "client", "stress", "busy", "deadline", "decision", "tired", "overwhelm", "pressure", "business"],
   },
   noah: {
-    name: "Dr. Noah", title: "Psychologist", avatar: "N", color: "#111",
+    name: "Dr. Noah", title: "Psychologist", avatar: "NO", avatarColor: "#2d4a4a", color: "#111",
     personality: `You are Dr. Noah, performance psychologist. Warm, perceptive, quietly incisive. You read between the lines — what people say and what they mean are often different. You notice emotional undercurrents in how people describe their day. You ask one precise question when you sense something beneath the surface. You never project or catastrophise. You connect mental state to physical performance in specific, practical ways. You speak like a thoughtful human, not a therapist.`,
     triggers: ["feel", "feeling", "mood", "anxious", "worried", "frustrated", "happy", "down", "motivated", "unmotivated", "mindset", "mental", "stress", "overwhelm", "doubt"],
   },
   sara: {
-    name: "Dr. Sara", title: "Endocrinologist", avatar: "SA", color: "#111",
+    name: "Dr. Sara", title: "Endocrinologist", avatar: "SA", avatarColor: "#4a4a2d", color: "#111",
     personality: `You are Dr. Sara, endocrinologist specialising in performance and hormonal health. You look at the whole hormonal picture — cortisol, testosterone, thyroid, insulin, adrenaline — and how they interact with training, sleep, stress, and nutrition. You connect dots nobody else does: why someone stalls in training despite doing everything right, why energy crashes at specific times, why stress affects recovery more than expected. You're precise and evidence-based but speak plainly. You ask about energy patterns, libido, recovery rate, mood cycles when they're relevant.`,
     triggers: ["energy", "crash", "hormone", "cortisol", "stress", "recovery", "stall", "plateau", "mood", "libido", "inflammation", "adrenal", "thyroid"],
   },
   marco: {
-    name: "Chef Marco", title: "Performance Chef", avatar: "MC", color: "#111",
+    name: "Chef Marco", title: "Performance Chef", avatar: "MR", avatarColor: "#3a3a3a", color: "#111",
     personality: `You are Chef Marco, performance nutritionist and meal strategist. Different to Priya — she handles the science, you handle the plate. You take what Priya recommends and make it real and practical. If someone mentions a meal, you give specific prep advice, ingredient swaps, cooking methods that preserve nutrients. If they mention lamb, you tell them exactly how to cook it, what to serve it with, portion sizes, timing. You make performance eating feel like good food, not a chore. You occasionally reference specific cuisines or techniques. You ask what's in the fridge when you need to.`,
     triggers: ["cook", "recipe", "meal", "dinner", "lunch", "breakfast", "lamb", "chicken", "fish", "vegetables", "prepare", "fridge", "eat", "food"],
   },
@@ -218,7 +218,7 @@ function Onboarding({ onComplete }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "claude-sonnet-4-5-20251001",
           max_tokens: 800,
           system: `You are building an initial profile for a new member of The Panel — a 12-specialist life and performance optimisation system. Based on their onboarding answers, create a structured profile with these sections: IDENTITY, WORK & LIFE, TRAINING SETUP, GOALS, HEALTH & BODY, MIND & MOTIVATION, PATTERNS & OBSERVATIONS. Keep it factual, specific, under 500 words. Use their exact words where possible. End PATTERNS & OBSERVATIONS with "Profile building — panel learning from first conversation." Output only the profile text.`,
           messages: [{ role: "user", content: `Name: ${ans.name}\nAge: ${ans.age || "not provided"}\nGender: ${ans.gender || "not provided"}\nWeight: ${ans.weight || "not provided"}kg\nWork: ${ans.work}\nTraining: ${ans.training}\nGoals: ${ans.goal}\nContext: ${ans.context || "Nothing additional."}` }],
@@ -497,8 +497,7 @@ const CSS = `
   .specialist-bubble { background: #f7f7f7; border-radius: 4px 18px 18px 18px; padding: 12px 16px; font-size: 13px; line-height: 1.65; color: #222; max-width: 90%; position: relative; }
   .specialist-bubble.marcus { background: #000; color: #ddd; border-radius: 12px; padding: 16px 20px; max-width: 100%; }
   .specialist-name-tag { font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
-  .sp-avatar { width: 18px; height: 18px; border-radius: 50%; background: #e5e5e5; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #666; flex-shrink: 0; }
-  .sp-avatar.black { background: #000; color: #fff; }
+  .sp-avatar { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em; flex-shrink: 0; }
   .loading-indicator { display: flex; align-items: center; gap: 6px; padding: 8px 0; font-size: 12px; color: #ccc; }
   .chat-textarea { width: 100%; background: #f5f5f5; border: 0.5px solid #e5e5e5; border-radius: 20px; padding: 12px 50px 12px 18px; color: #000; font-size: 14px; line-height: 1.5; resize: none; font-family: inherit; outline: none; transition: border-color 0.15s; max-height: 120px; min-height: 44px; overflow-y: auto; }
   .chat-textarea:focus { border-color: #000; background: #fff; }
@@ -508,7 +507,7 @@ const CSS = `
   .chat-input-wrapper { position: relative; }
   .panel-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 24px 12px; border-top: 0.5px solid #f5f5f5; flex-shrink: 0; }
   .chip { display: flex; align-items: center; gap: 5px; background: #f5f5f5; border-radius: 100px; padding: 3px 10px 3px 5px; }
-  .chip-av { width: 18px; height: 18px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; }
+  .chip-av { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.05em; flex-shrink: 0; }
   .chip-name { font-size: 11px; color: #888; }
   input:focus, button:focus, textarea:focus { outline: none; }
 
@@ -715,8 +714,11 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
               <div className="specialist-group">
                 <div className={`specialist-bubble ${msg.specialist === "marcus" ? "marcus" : ""}`}>
                   <div className="specialist-name-tag">
-                    <div className={`sp-avatar ${msg.specialist === "marcus" ? "black" : ""}`}>{SPECIALISTS[msg.specialist]?.avatar}</div>
-                    {SPECIALISTS[msg.specialist]?.name} · {SPECIALISTS[msg.specialist]?.title}
+                    <div className="sp-avatar" style={{ background: SPECIALISTS[msg.specialist]?.avatarColor || "#333" }}>{SPECIALISTS[msg.specialist]?.avatar}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: msg.specialist === "marcus" ? "#888" : "#555" }}>{SPECIALISTS[msg.specialist]?.name}</div>
+                      <div style={{ fontSize: 9, color: "#bbb", marginTop: 1 }}>{SPECIALISTS[msg.specialist]?.title}</div>
+                    </div>
                   </div>
                   {msg.content}
                 </div>
@@ -728,9 +730,12 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
         {loading && loadingSpecialists.length > 0 && (
           <div className="specialist-bubble" style={{ opacity: 0.6, alignSelf: "flex-start" }}>
             <div className="specialist-name-tag">
-              <div className="sp-avatar">{SPECIALISTS[loadingSpecialists[0]]?.avatar}</div>
-              {SPECIALISTS[loadingSpecialists[0]]?.name} is thinking
-              <div className="loading-dot" style={{ marginLeft: 4 }} />
+              <div className="sp-avatar" style={{ background: SPECIALISTS[loadingSpecialists[0]]?.avatarColor || "#333" }}>{SPECIALISTS[loadingSpecialists[0]]?.avatar}</div>
+              <div>
+                <div style={{ fontWeight: 600, color: "#555" }}>{SPECIALISTS[loadingSpecialists[0]]?.name}</div>
+                <div style={{ fontSize: 9, color: "#bbb", marginTop: 1 }}>{SPECIALISTS[loadingSpecialists[0]]?.title} · thinking</div>
+              </div>
+              <div className="loading-dot" style={{ marginLeft: 6 }} />
             </div>
           </div>
         )}
@@ -751,22 +756,25 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
                 key={key}
                 onClick={() => setDirected(isSelected ? null : key)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 5,
+                  display: "flex", alignItems: "center", gap: 6,
                   background: isSelected ? "#000" : "#f5f5f5",
                   border: isSelected ? "none" : "0.5px solid #e8e8e8",
-                  borderRadius: 100, padding: "5px 10px 5px 6px",
+                  borderRadius: 100, padding: "6px 12px 6px 6px",
                   cursor: "pointer", flexShrink: 0, transition: "all 0.15s",
                   fontFamily: "inherit",
                 }}
               >
                 <div style={{
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: isSelected ? "#fff" : "#e0e0e0",
-                  color: isSelected ? "#000" : "#666",
+                  width: 26, height: 26, borderRadius: 7,
+                  background: isSelected ? sp.avatarColor || "#333" : "#e8e8e8",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 8, fontWeight: 700, flexShrink: 0,
+                  fontSize: 9, fontWeight: 700, color: isSelected ? "#fff" : "#888",
+                  letterSpacing: "0.05em", flexShrink: 0,
                 }}>{sp.avatar}</div>
-                <span style={{ fontSize: 11, color: isSelected ? "#fff" : "#888", fontWeight: isSelected ? 600 : 400 }}>{sp.name}</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 11, color: isSelected ? "#fff" : "#555", fontWeight: 600, lineHeight: 1.2 }}>{sp.name}</div>
+                  <div style={{ fontSize: 9, color: isSelected ? "#888" : "#bbb", lineHeight: 1.2 }}>{sp.title}</div>
+                </div>
               </button>
             );
           })}
@@ -843,7 +851,7 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-5",
+            model: "claude-sonnet-4-5-20251001",
             max_tokens: 200,
             system: `${sp.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}\n\nProvide a brief insight (1-2 sentences max) from your specific domain only. This will be shared with the lead specialist to inform their response. Be specific and concise.`,
             messages: [{ role: "user", content: userMessage }],
@@ -874,7 +882,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-5-20251001",
         max_tokens: 300,
         system: `${sp.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}${insightsText}${directedNote}\n\nBe conversational, specific, and direct. 2-4 sentences. No bullet points. Ask one follow-up question only if genuinely needed.`,
         messages: [...historyMessages, { role: "user", content: userMessage }],
@@ -901,7 +909,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-5-20251001",
         max_tokens: 200,
         system: `${SPECIALISTS.marcus.personality}\n\nATHLETE PROFILE:\n${profile}${trainingContext}\n\nOnly respond if there is a genuinely important pattern, conflict, or decision. If not, respond with exactly: PASS`,
         messages: [{ role: "user", content: `Recent conversation:\n${historyStr}\n\nLatest response from panel: ${leadResponse}\n\nAnything important to add?` }],
@@ -921,7 +929,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "claude-sonnet-4-5-20251001",
           max_tokens: 800,
           system: `Maintain a living profile. Update with new observations. Factual and specific. Preserve existing info unless superseded. Under 600 words. Same section structure. Output only the profile text.`,
           messages: [{ role: "user", content: `CURRENT PROFILE:\n${profile}\n\nRECENT CONVERSATION:\n${recentStr}\n\nUpdate with anything new.` }],
@@ -965,11 +973,18 @@ export default function App() {
     let leadResponse = "";
     try {
       leadResponse = await getLeadResponse(leadKey, userInput, newMessages, trainingContext, supportInsights, directed);
-    } catch { leadResponse = "Give me a moment — try again."; }
+    } catch (err) {
+      leadResponse = "Something went wrong — try again.";
+      console.error("Lead response error:", err);
+    }
+
+    if (!leadResponse || leadResponse.trim() === "") {
+      leadResponse = "I need a moment — try asking again.";
+    }
 
     const leadMsg = { role: "specialist", specialist: leadKey, content: leadResponse };
     const allMessages = [...newMessages, leadMsg];
-    setMessages(allMessages);
+    setMessages([...allMessages]);
     setLoadingSpecialists([]);
 
     // Check if Marcus should weigh in
