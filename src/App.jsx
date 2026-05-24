@@ -405,13 +405,15 @@ function getLastWeight(sessions, exerciseId) {
   return "";
 }
 
-function buildTrainingContext(sessions) {
+function buildTrainingContext(sessions, customProgram = []) {
   if (!sessions || sessions.length === 0) return "";
+  const allProgram = { ...PROGRAM };
+  customProgram.forEach(s => { allProgram[s.id] = s; });
   const recent = sessions.slice(-5);
   const lines = recent.map(s => {
-    const prog = PROGRAM[s.type];
+    const prog = allProgram[s.type];
     const exLines = s.exercises?.filter(e => e.weight || e.rpe).map(e => `${e.name}: ${e.weight ? e.weight + "kg" : "BW"} ${e.sets}x${e.reps || "—"}${e.rpe ? ` RPE ${e.rpe}` : ""}`).join(", ");
-    return `[${s.date}] ${prog?.name} (${prog?.label})${exLines ? ": " + exLines : ""}`;
+    return `[${s.date}] ${prog?.name || s.type} (${prog?.label || "Custom"})${exLines ? ": " + exLines : ""}`;
   });
   return `\n\nRecent training:\n${lines.join("\n")}`;
 }
@@ -562,8 +564,8 @@ function SpecialistCard({ id, response }) {
 }
 
 // ── LOG SESSION ───────────────────────────────────────────────────────────────
-function LogSession({ sessionType, trainingSessions, onSave, onBack }) {
-  const prog = PROGRAM[sessionType];
+function LogSession({ sessionType, sessionDef, trainingSessions, onSave, onBack }) {
+  const prog = sessionDef || PROGRAM[sessionType];
   const [weights, setWeights] = useState(() => { const w = {}; prog.exercises.forEach(ex => { w[ex.id] = getLastWeight(trainingSessions, ex.id); }); return w; });
   const [rpe, setRpe] = useState({});
   const [saving, setSaving] = useState(false);
@@ -600,14 +602,50 @@ function LogSession({ sessionType, trainingSessions, onSave, onBack }) {
   );
 }
 
-// ── TRAINING TAB ──────────────────────────────────────────────────────────────
-function TrainingTab({ trainingSessions, onLogSession }) {
+// ── TRAINING TAB ─────────────────────────────────────────────────────────────
+function TrainingTab({ trainingSessions, onLogSession, customProgram, onSaveCustomSession, onDeleteCustomSession }) {
   const [logging, setLogging] = useState(null);
+  const [building, setBuilding] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
+
   const today = new Date().toLocaleDateString("en-AU", { weekday: "long" }).slice(0, 3);
   const suggested = WEEKLY[today] || null;
   const thisWeek = trainingSessions.filter(s => (new Date() - new Date(s.date_raw)) < 7 * 24 * 60 * 60 * 1000).length;
 
-  if (logging) return <LogSession sessionType={logging} trainingSessions={trainingSessions} onSave={async s => { await onLogSession(s); setLogging(null); }} onBack={() => setLogging(null)} />;
+  // All sessions — built-in + custom
+  const allSessions = { ...PROGRAM };
+  customProgram.forEach(s => { allSessions[s.id] = s; });
+
+  if (logging) {
+    const prog = allSessions[logging];
+    return (
+      <LogSession
+        sessionType={logging}
+        sessionDef={prog}
+        trainingSessions={trainingSessions}
+        onSave={async s => { await onLogSession(s); setLogging(null); }}
+        onBack={() => setLogging(null)}
+      />
+    );
+  }
+
+  if (building || editingSession) {
+    return (
+      <SessionBuilder
+        existing={editingSession}
+        onSave={async session => {
+          await onSaveCustomSession(session);
+          setBuilding(false);
+          setEditingSession(null);
+        }}
+        onBack={() => { setBuilding(false); setEditingSession(null); }}
+        onDelete={editingSession ? async () => {
+          await onDeleteCustomSession(editingSession.id);
+          setEditingSession(null);
+        } : null}
+      />
+    );
+  }
 
   return (
     <div className="content-padded">
@@ -615,12 +653,200 @@ function TrainingTab({ trainingSessions, onLogSession }) {
         <div className="stat"><div className="stat-val">{trainingSessions.length}</div><div className="stat-label">Total sessions</div></div>
         <div className="stat"><div className="stat-val">{thisWeek}</div><div className="stat-label">This week</div></div>
       </div>
-      {suggested && (<><div className="section-label">Today · {today}</div><button className="session-btn suggested" onClick={() => setLogging(suggested)}><div><div style={{ fontSize: 13, fontWeight: 500 }}>{PROGRAM[suggested].name}</div><div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{PROGRAM[suggested].label}</div></div><span style={{ fontSize: 18, color: "#bbb" }}>→</span></button><div className="divider" /></>)}
-      <div className="section-label">Log a Session</div>
+
+      {suggested && (
+        <>
+          <div className="section-label">Today · {today}</div>
+          <button className="session-btn suggested" onClick={() => setLogging(suggested)}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{allSessions[suggested]?.name}</div>
+              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{allSessions[suggested]?.label}</div>
+            </div>
+            <span style={{ fontSize: 18, color: "#bbb" }}>→</span>
+          </button>
+          <div className="divider" />
+        </>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div className="section-label" style={{ marginBottom: 0 }}>Your Program</div>
+        <button onClick={() => setBuilding(true)} style={{
+          background: "#000", color: "#fff", border: "none", borderRadius: 8,
+          padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+        }}>+ Add Session</button>
+      </div>
+
+      {/* Built-in sessions */}
       {Object.entries(PROGRAM).map(([key, prog]) => (
-        <button key={key} className="session-btn" onClick={() => setLogging(key)}><div><div style={{ fontSize: 13, fontWeight: 500 }}>{prog.name}</div><div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{prog.label}</div></div><span style={{ fontSize: 18, color: "#bbb" }}>→</span></button>
+        <button key={key} className="session-btn" onClick={() => setLogging(key)}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{prog.name}</div>
+            <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{prog.label}</div>
+          </div>
+          <span style={{ fontSize: 18, color: "#bbb" }}>→</span>
+        </button>
       ))}
-      {trainingSessions.length > 0 && (<><div className="divider" /><div className="section-label">Recent</div>{[...trainingSessions].reverse().slice(0, 5).map(s => (<div key={s.id} style={{ marginBottom: 8, padding: "10px 14px", background: "#f9f9f9", borderRadius: 10, border: "0.5px solid #e5e5e5" }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{PROGRAM[s.type]?.name}</div><div style={{ fontSize: 11, color: "#bbb" }}>{s.date}</div></div><div style={{ display: "flex", flexWrap: "wrap" }}>{s.exercises?.filter(e => e.weight).map(e => (<span key={e.id} className="tag">{e.name} {e.weight}kg{e.rpe ? ` RPE ${e.rpe}` : ""}</span>))}</div></div>))}</>)}
+
+      {/* Custom sessions */}
+      {customProgram.length > 0 && (
+        <>
+          <div className="divider" />
+          <div className="section-label">Custom Sessions</div>
+          {customProgram.map(prog => (
+            <div key={prog.id} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <button className="session-btn" style={{ flex: 1, marginBottom: 0 }} onClick={() => setLogging(prog.id)}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{prog.name}</div>
+                  <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{prog.label}</div>
+                </div>
+                <span style={{ fontSize: 18, color: "#bbb" }}>→</span>
+              </button>
+              <button onClick={() => setEditingSession(prog)} style={{
+                background: "#f5f5f5", border: "0.5px solid #ebebeb", borderRadius: 12,
+                padding: "0 14px", fontSize: 12, color: "#999", cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+              }}>Edit</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {trainingSessions.length > 0 && (
+        <>
+          <div className="divider" />
+          <div className="section-label">Recent</div>
+          {[...trainingSessions].reverse().slice(0, 5).map(s => (
+            <div key={s.id} style={{ marginBottom: 8, padding: "10px 14px", background: "#f9f9f9", borderRadius: 10, border: "0.5px solid #ebebeb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{allSessions[s.type]?.name || s.type}</div>
+                <div style={{ fontSize: 11, color: "#bbb" }}>{s.date}</div>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap" }}>
+                {s.exercises?.filter(e => e.weight).map(e => (
+                  <span key={e.id} className="tag">{e.name} {e.weight}kg{e.rpe ? ` RPE ${e.rpe}` : ""}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── SESSION BUILDER ───────────────────────────────────────────────────────────
+function SessionBuilder({ existing, onSave, onBack, onDelete }) {
+  const [name, setName] = useState(existing?.name || "");
+  const [label, setLabel] = useState(existing?.label || "");
+  const [exercises, setExercises] = useState(existing?.exercises || [
+    { id: "ex1", name: "", sets: 3, reps: 8, note: "" }
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  function addExercise() {
+    setExercises(prev => [...prev, { id: "ex" + Date.now(), name: "", sets: 3, reps: 8, note: "" }]);
+  }
+
+  function removeExercise(id) {
+    setExercises(prev => prev.filter(e => e.id !== id));
+  }
+
+  function updateExercise(id, field, value) {
+    setExercises(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+  }
+
+  async function handleSave() {
+    if (!name.trim() || exercises.filter(e => e.name.trim()).length === 0) return;
+    setSaving(true);
+    await onSave({
+      id: existing?.id || "custom_" + Date.now(),
+      name: name.trim(),
+      label: label.trim() || "Custom",
+      exercises: exercises.filter(e => e.name.trim()).map(e => ({
+        ...e,
+        sets: parseInt(e.sets) || 3,
+        reps: parseInt(e.reps) || null,
+      })),
+      isCustom: true,
+    });
+    setSaving(false);
+  }
+
+  return (
+    <div className="content-padded">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#bbb", fontSize: 20, cursor: "pointer", padding: 0 }}>←</button>
+        <div style={{ fontSize: 18, fontWeight: 300 }}>{existing ? "Edit Session" : "New Session"}</div>
+      </div>
+
+      <div className="section-label">Session Name</div>
+      <input
+        className="input-field"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="e.g. Session D — Olympic Lifting"
+        style={{ width: "100%", marginBottom: 8, borderRadius: 12, padding: "12px 14px" }}
+      />
+      <input
+        className="input-field"
+        value={label}
+        onChange={e => setLabel(e.target.value)}
+        placeholder="Short label e.g. Olympic Lifting"
+        style={{ width: "100%", marginBottom: 20, borderRadius: 12, padding: "12px 14px" }}
+      />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div className="section-label" style={{ marginBottom: 0 }}>Exercises</div>
+        <button onClick={addExercise} style={{
+          background: "#f5f5f5", border: "0.5px solid #ebebeb", borderRadius: 8,
+          padding: "5px 12px", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit",
+        }}>+ Add</button>
+      </div>
+
+      {exercises.map((ex, i) => (
+        <div className="ex-card" key={ex.id} style={{ position: "relative" }}>
+          <input
+            className="input-field"
+            value={ex.name}
+            onChange={e => updateExercise(ex.id, "name", e.target.value)}
+            placeholder="Exercise name"
+            style={{ width: "100%", marginBottom: 8 }}
+          />
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#bbb", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.1em" }}>Sets</div>
+              <input className="input-field" type="number" value={ex.sets} onChange={e => updateExercise(ex.id, "sets", e.target.value)} style={{ width: "100%" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#bbb", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.1em" }}>Reps</div>
+              <input className="input-field" type="number" value={ex.reps || ""} onChange={e => updateExercise(ex.id, "reps", e.target.value)} placeholder="—" style={{ width: "100%" }} />
+            </div>
+          </div>
+          <input
+            className="input-field"
+            value={ex.note}
+            onChange={e => updateExercise(ex.id, "note", e.target.value)}
+            placeholder="Note (optional)"
+            style={{ width: "100%" }}
+          />
+          {exercises.length > 1 && (
+            <button onClick={() => removeExercise(ex.id)} style={{
+              position: "absolute", top: 12, right: 12,
+              background: "none", border: "none", color: "#ddd", fontSize: 16, cursor: "pointer",
+            }}>×</button>
+          )}
+        </div>
+      ))}
+
+      <button className="btn-primary" onClick={handleSave} disabled={saving || !name.trim()}>
+        {saving ? "Saving…" : existing ? "Save Changes" : "Create Session"}
+      </button>
+
+      {onDelete && (
+        <button onClick={onDelete} style={{
+          width: "100%", marginTop: 10, background: "none", border: "0.5px solid #ebebeb",
+          borderRadius: 14, padding: 14, fontSize: 14, color: "#ccc", cursor: "pointer", fontFamily: "inherit",
+        }}>Delete Session</button>
+      )}
     </div>
   );
 }
@@ -915,6 +1141,7 @@ export default function App() {
   const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem("br_onboarded"));
   const [userName, setUserName] = useState(() => localStorage.getItem("br_name") || "");
   const [trainingSessions, setTrainingSessions] = useState([]);
+  const [customProgram, setCustomProgram] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [profile, setProfile] = useState(SEED_PROFILE);
   const [messages, setMessages] = useState([]);
@@ -927,13 +1154,20 @@ export default function App() {
     if (!onboarded) return;
     async function loadData() {
       setSyncing(true);
-      const [{ data: sessions }, { data: convs }, { data: prof }] = await Promise.all([
+      const [{ data: sessions }, { data: convs }, { data: prof }, { data: custom }] = await Promise.all([
         supabase.from("sessions").select("*").eq("user_id", userId).order("date_raw", { ascending: true }),
         supabase.from("conversations").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("profiles").select("*").eq("user_id", userId).single(),
+        supabase.from("custom_sessions").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
       ]);
       if (sessions) setTrainingSessions(sessions);
-      if (convs) setConversations(convs);
+      if (custom) setCustomProgram(custom.map(s => s.session_data));
+      if (convs) {
+        setConversations(convs);
+        if (convs.length > 0 && convs[0].messages) {
+          setMessages(convs[0].messages);
+        }
+      }
       if (prof?.content) setProfile(prof.content);
       setSyncing(false);
     }
@@ -950,6 +1184,21 @@ export default function App() {
   }
 
   if (!onboarded) return <Onboarding onComplete={handleOnboardingComplete} />;
+
+  async function handleSaveCustomSession(session) {
+    const row = { id: session.id, user_id: userId, session_data: session, created_at: new Date().toISOString() };
+    await supabase.from("custom_sessions").upsert(row);
+    setCustomProgram(prev => {
+      const existing = prev.findIndex(s => s.id === session.id);
+      if (existing >= 0) { const updated = [...prev]; updated[existing] = session; return updated; }
+      return [...prev, session];
+    });
+  }
+
+  async function handleDeleteCustomSession(sessionId) {
+    await supabase.from("custom_sessions").delete().eq("id", sessionId).eq("user_id", userId);
+    setCustomProgram(prev => prev.filter(s => s.id !== sessionId));
+  }
 
   async function getSupportInsights(supportKeys, userMessage, conversationHistory, trainingContext) {
     // Silently gather insights from support specialists
@@ -1062,7 +1311,7 @@ export default function App() {
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
 
-    const trainingContext = buildTrainingContext(trainingSessions);
+    const trainingContext = buildTrainingContext(trainingSessions, customProgram);
 
     let leadKey, supportKeys;
     if (directed) {
@@ -1151,7 +1400,7 @@ export default function App() {
 
         <div className="content">
           {view === "chat" && <ChatTab messages={messages} onSend={handleSend} loading={loading} loadingSpecialists={loadingSpecialists} />}
-          {view === "training" && <TrainingTab trainingSessions={trainingSessions} onLogSession={handleLogSession} />}
+          {view === "training" && <TrainingTab trainingSessions={trainingSessions} onLogSession={handleLogSession} customProgram={customProgram} onSaveCustomSession={handleSaveCustomSession} onDeleteCustomSession={handleDeleteCustomSession} />}
           {view === "history" && <HistoryTab conversations={conversations} />}
           {view === "profile" && <ProfileTab profile={profile} onAddNote={handleAddNote} />}
         </div>
