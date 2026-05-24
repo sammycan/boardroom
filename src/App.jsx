@@ -1,477 +1,542 @@
 import { useState, useRef, useEffect } from "react";
 
+// ── PROGRAM DEFINITION ──────────────────────────────────────────────────────
+const PROGRAM = {
+  A: {
+    name: "Session A", label: "Lower Strength", color: "#000",
+    exercises: [
+      { id: "squat", name: "Squat", sets: 4, reps: 5, note: "Heavy but not max" },
+      { id: "rdl", name: "Romanian Deadlift", sets: 3, reps: 8, note: "" },
+      { id: "goblet", name: "KB Goblet Squat", sets: 3, reps: 12, note: "Slow, pause at bottom" },
+      { id: "abwheel", name: "Ab Wheel", sets: 3, reps: 9, note: "" },
+      { id: "hillwalk", name: "Driveway Hill Walk", sets: 3, reps: null, note: "KB at chest" },
+    ],
+  },
+  B: {
+    name: "Session B", label: "Upper Strength", color: "#000",
+    exercises: [
+      { id: "bench", name: "Bench Press", sets: 4, reps: 5, note: "" },
+      { id: "row", name: "Barbell Row", sets: 4, reps: 6, note: "" },
+      { id: "ohp", name: "Overhead Press", sets: 3, reps: 8, note: "" },
+      { id: "halo", name: "KB Halo", sets: 3, reps: 10, note: "Each direction" },
+      { id: "abwheel2", name: "Ab Wheel", sets: 3, reps: 8, note: "" },
+    ],
+  },
+  C: {
+    name: "Session C", label: "Conditioning", color: "#000",
+    exercises: [
+      { id: "trail", name: "Trail Run", sets: 1, reps: null, note: "20–30 min easy pace" },
+      { id: "mobility", name: "Mobility", sets: 1, reps: null, note: "5 min: hip flexors, thoracic, hamstrings" },
+    ],
+  },
+};
+
+const WEEKLY = { Mon: "A", Tue: "C", Wed: "B" };
+
+// ── SPECIALISTS ──────────────────────────────────────────────────────────────
 const SPECIALISTS = {
   head: {
-    name: "Marcus",
-    title: "Head Coach",
-    color: "#000000",
-    avatar: "M",
-    personality: `You are Marcus, the Head Coach and performance director. You've worked in elite sport for 20 years — rugby, triathlon, now private athlete coaching. You're calm, authoritative, and integrative. You listen to all your specialists, weigh their input, and give the athlete one clear direction. You don't hedge. You're not harsh but you don't sugarcoat either. You speak like someone who's seen it all and still gives a damn. You run the board meeting, synthesise the specialists' input, and deliver the final recommendation. Format: brief acknowledgment of the check-in, then "The panel said:" followed by 2-3 key specialist insights in your own words, then "My call:" with your specific recommendation for the next 24-48 hours.`,
+    name: "Marcus", title: "Head Coach", avatar: "M",
+    personality: `You are Marcus, the Head Coach and performance director. You've worked in elite sport for 20 years. You're calm, authoritative, and integrative. You synthesise all specialist input and give the athlete one clear direction. You don't hedge. Format: brief acknowledgment, then "The panel said:" with 2-3 key insights, then "My call:" with specific recommendation for next 24-48 hours.`,
   },
   strength: {
-    name: "Davo",
-    title: "Strength Coach",
-    avatar: "D",
-    color: "#111",
-    personality: `You are Davo, strength and conditioning coach. Ex-powerlifter, coached athletes for 15 years. You're direct, a little blunt, occasionally dry. You care about load management and progressive overload — you hate junk volume and you hate skipped sessions equally. You speak in plain terms. No fluff. If the numbers are good you say so. If they're skipping too much or overreaching you call it. You look at: training load, weights logged, session RPE, frequency, recovery between sessions.`,
+    name: "Davo", title: "Strength Coach", avatar: "D",
+    personality: `You are Davo, strength and conditioning coach. Ex-powerlifter, 15 years coaching. Direct, blunt, occasionally dry. You care about load management and progressive overload. You look at training load, weights logged, session RPE, frequency, recovery. When training data is provided, reference the specific numbers. Progression: add 2.5kg/week if RPE 7-8, hold if RPE 9, drop 10% if missed reps.`,
   },
   diet: {
-    name: "Priya",
-    title: "Dietician",
-    avatar: "P",
-    color: "#111",
-    personality: `You are Priya, sports dietician. You're measured, evidence-based, and quietly passionate about food as fuel. You don't moralize about what people eat — you just connect dots between nutrition and performance. You notice patterns. You're warm but precise. You flag under-fuelling, poor timing, and micronutrient gaps without being preachy. You look at: what they ate, when they ate, energy levels relative to food intake, hydration mentions.`,
+    name: "Priya", title: "Dietician", avatar: "P",
+    personality: `You are Priya, sports dietician. Measured, evidence-based, warm but precise. You connect dots between nutrition and performance. You flag under-fuelling, poor timing, micronutrient gaps without being preachy. Look at: what they ate, when, energy levels relative to food intake, hydration.`,
   },
   sleep: {
-    name: "Jonah",
-    title: "Sleep Coach",
-    avatar: "J",
-    color: "#111",
-    personality: `You are Jonah, sleep and recovery specialist. You're calm, almost annoyingly so. You've studied sleep science for a decade and you know that most athletes underestimate how much it affects everything. You're not judgmental about bad nights — life happens — but you're relentless about patterns. You flag sleep debt, poor sleep quality, and the downstream effects on training and mood. You look at: hours slept, sleep quality mentioned, time of training relative to sleep, stress or mental load mentions.`,
+    name: "Jonah", title: "Sleep Coach", avatar: "J",
+    personality: `You are Jonah, sleep and recovery specialist. Calm, relentless about patterns. You flag sleep debt, poor quality, downstream effects on training and mood. Look at: hours slept, sleep quality, training time relative to sleep, stress mentions.`,
   },
   running: {
-    name: "Kai",
-    title: "Running Coach",
-    avatar: "K",
-    color: "#111",
-    personality: `You are Kai, running and conditioning coach. You're enthusiastic without being annoying about it. Trail runner, former competitive middle-distance athlete. You geek out on effort zones, terrain, and the mental side of running. You encourage the trails and driveway work, help calibrate effort, and push for consistency over intensity. You look at: any running or conditioning logged, effort level, terrain, duration.`,
+    name: "Kai", title: "Running Coach", avatar: "K",
+    personality: `You are Kai, running and conditioning coach. Enthusiastic trail runner, former competitive middle-distance athlete. You geek out on effort zones and terrain. Look at: any running or conditioning logged, effort level, terrain, duration.`,
   },
   padel: {
-    name: "Sofia",
-    title: "Padel Coach",
-    avatar: "S",
-    color: "#111",
-    personality: `You are Sofia, padel coach. You played on the European circuit for 8 years before coaching. You're competitive, fun, and strategic. You think about padel holistically — not just technique but how physical condition, fatigue, and movement quality affect play. You flag when they're going into a game under-recovered and when they should prioritise padel over a gym session. You look at: any padel mentioned, energy/fatigue state relative to games, movement quality mentions.`,
+    name: "Sofia", title: "Padel Coach", avatar: "S",
+    personality: `You are Sofia, padel coach. 8 years on the European circuit. Competitive, fun, strategic. You flag when they're going into a game under-recovered. Look at: padel mentioned, energy/fatigue relative to games, movement quality.`,
   },
   yoga: {
-    name: "Ren",
-    title: "Mobility & Yoga",
-    avatar: "R",
-    color: "#111",
-    personality: `You are Ren, yoga and mobility specialist. You're grounded, a little philosophical, but never preachy. You believe movement quality underpins everything and that most athletes neglect it until something breaks. You're patient. You flag tightness, missed mobility work, and stress held in the body. You gently advocate for the 5-min mobility finishes and rest days. You look at: any mobility or yoga mentioned, stress or tension cues, training density.`,
+    name: "Ren", title: "Mobility & Yoga", avatar: "R",
+    personality: `You are Ren, yoga and mobility specialist. Grounded, never preachy. You believe movement quality underpins everything. You flag tightness, missed mobility work, stress held in the body. Look at: mobility mentioned, stress cues, training density.`,
   },
   science: {
-    name: "Dr. Ellis",
-    title: "Sports Scientist",
-    avatar: "E",
-    color: "#111",
-    personality: `You are Dr. Ellis, sports scientist. You're precise, analytical, and occasionally nerdy in the best way. You look at patterns across the whole dataset — training load, sleep, nutrition, HRV if available — and identify trends the others might miss. You speak in slightly more technical terms but always translate to practical meaning. You're the one who spots overtraining before it happens, or notices the correlation between bad sleep and poor session RPE. You look at: overall patterns, load trends, recovery indicators, consistency data.`,
+    name: "Dr. Ellis", title: "Sports Scientist", avatar: "E",
+    personality: `You are Dr. Ellis, sports scientist. Precise, analytical, pattern spotter. You look across the whole dataset — training load, sleep, nutrition — and identify trends others miss. When training data is provided, analyse load trends, recovery indicators, consistency. Flag overtraining before it happens.`,
   },
 };
 
 const SPECIALIST_ORDER = ["strength", "diet", "sleep", "running", "padel", "yoga", "science"];
-const STORAGE_KEY = "boardroom_v2_logs";
 
-function loadLogs() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+// ── STORAGE ──────────────────────────────────────────────────────────────────
+const SESSIONS_KEY = "br_training_sessions";
+const MEETINGS_KEY = "br_meetings";
+
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
 }
-function saveLogs(logs) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); } catch {}
+function save(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 }
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+function getLastWeight(sessions, exerciseId) {
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const ex = sessions[i].exercises?.find(e => e.id === exerciseId);
+    if (ex?.weight) return ex.weight;
+  }
+  return "";
+}
+
+function buildTrainingContext(sessions) {
+  if (!sessions || sessions.length === 0) return "";
+  const recent = sessions.slice(-5);
+  const lines = recent.map(s => {
+    const prog = PROGRAM[s.type];
+    const exLines = s.exercises
+      ?.filter(e => e.weight || e.rpe)
+      .map(e => `${e.name}: ${e.weight ? e.weight + "kg" : "BW"} ${e.sets}x${e.reps || "—"}${e.rpe ? ` RPE ${e.rpe}` : ""}`)
+      .join(", ");
+    return `[${s.date}] ${prog?.name} (${prog?.label})${exLines ? ": " + exLines : ""}`;
+  });
+  return `\n\nRecent training data:\n${lines.join("\n")}`;
+}
+
+// ── STYLES ───────────────────────────────────────────────────────────────────
+const CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #ffffff; }
+  body { background: #fff; }
   .app {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-    background: #ffffff;
-    color: #000000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #fff;
+    color: #000;
     min-height: 100vh;
     max-width: 720px;
     margin: 0 auto;
   }
-  .header {
-    padding: 48px 40px 32px;
-    border-bottom: 0.5px solid #e5e5e5;
-  }
-  .header-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #999;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .header-title {
-    font-size: 36px;
-    font-weight: 300;
-    color: #000;
-    letter-spacing: -0.02em;
-    line-height: 1;
-  }
-  .header-sub {
-    font-size: 13px;
-    color: #bbb;
-    margin-top: 6px;
-    font-weight: 400;
-  }
-  .nav {
-    display: flex;
-    border-bottom: 0.5px solid #e5e5e5;
-    padding: 0 40px;
-  }
+  .header { padding: 48px 40px 28px; border-bottom: 0.5px solid #e5e5e5; }
+  .header-label { font-size: 11px; font-weight: 500; color: #999; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+  .header-title { font-size: 36px; font-weight: 300; color: #000; letter-spacing: -0.02em; line-height: 1; }
+  .header-sub { font-size: 13px; color: #bbb; margin-top: 6px; }
+  .nav { display: flex; border-bottom: 0.5px solid #e5e5e5; padding: 0 40px; }
   .nav-btn {
-    background: none;
-    border: none;
-    border-bottom: 1.5px solid transparent;
-    padding: 16px 0;
-    margin-right: 32px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #bbb;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    font-family: inherit;
+    background: none; border: none; border-bottom: 1.5px solid transparent;
+    padding: 14px 0; margin-right: 28px; font-size: 13px; font-weight: 500;
+    color: #bbb; cursor: pointer; letter-spacing: 0.04em; font-family: inherit;
     transition: color 0.15s, border-color 0.15s;
   }
-  .nav-btn.active {
-    color: #000;
-    border-bottom-color: #000;
+  .nav-btn.active { color: #000; border-bottom-color: #000; }
+  .content { padding: 36px 40px; }
+  .section-label { font-size: 11px; font-weight: 500; color: #bbb; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+  .card {
+    background: #fff; border: 0.5px solid #e5e5e5; border-radius: 12px;
+    overflow: hidden; margin-bottom: 8px; transition: border-color 0.15s;
   }
-  .content {
-    padding: 40px;
+  .card:hover { border-color: #ccc; }
+  .card-header {
+    display: flex; align-items: center; gap: 14px; padding: 16px 20px;
+    cursor: pointer; background: none; border: none; width: 100%; text-align: left;
   }
-  .section-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #bbb;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 16px;
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: #000; flex-shrink: 0;
   }
-  .intro-text {
-    font-size: 15px;
-    color: #666;
-    line-height: 1.7;
-    margin-bottom: 32px;
-    max-width: 520px;
-  }
-  .example-block {
-    background: #f9f9f9;
-    border: 0.5px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 32px;
-    font-size: 13px;
-    color: #999;
-    line-height: 1.7;
-    font-style: italic;
-    max-width: 520px;
-  }
+  .avatar-black { background: #000; color: #fff; }
+  .card-info { flex: 1; }
+  .card-name { font-size: 14px; font-weight: 500; color: #000; font-family: inherit; }
+  .card-sub { font-size: 12px; color: #999; margin-top: 1px; font-family: inherit; }
+  .chevron { font-size: 11px; color: #ccc; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+  .card-body { padding: 0 20px 18px; border-top: 0.5px solid #f0f0f0; padding-top: 14px; font-size: 14px; color: #555; line-height: 1.7; }
+  .marcus-card { background: #000; border-radius: 14px; padding: 26px 28px; margin-bottom: 20px; }
+  .marcus-label { font-size: 11px; font-weight: 500; color: #555; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .marcus-text { font-size: 15px; color: #ddd; line-height: 1.75; }
   .textarea {
-    width: 100%;
-    background: #f9f9f9;
-    border: 0.5px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 20px 24px;
-    color: #000;
-    font-size: 15px;
-    line-height: 1.7;
-    resize: none;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s;
-    min-height: 140px;
+    width: 100%; background: #f9f9f9; border: 0.5px solid #e5e5e5;
+    border-radius: 12px; padding: 18px 22px; color: #000; font-size: 15px;
+    line-height: 1.7; resize: none; font-family: inherit; outline: none;
+    transition: border-color 0.15s, background 0.15s; min-height: 130px;
   }
   .textarea:focus { border-color: #000; background: #fff; }
   .textarea::placeholder { color: #ccc; }
-  .cta-btn {
-    width: 100%;
-    margin-top: 12px;
-    background: #000;
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    padding: 16px 24px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    font-family: inherit;
-    transition: opacity 0.15s;
+  .btn-primary {
+    width: 100%; margin-top: 10px; background: #000; color: #fff; border: none;
+    border-radius: 12px; padding: 15px 24px; font-size: 14px; font-weight: 500;
+    cursor: pointer; letter-spacing: 0.04em; font-family: inherit; transition: opacity 0.15s;
   }
-  .cta-btn:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
-  .cta-btn:not(:disabled):hover { opacity: 0.8; }
-  .panel-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 40px;
+  .btn-primary:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
+  .btn-primary:not(:disabled):hover { opacity: 0.8; }
+  .btn-secondary {
+    background: #f5f5f5; color: #000; border: none; border-radius: 10px;
+    padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: inherit; transition: background 0.15s;
   }
-  .panel-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f9f9f9;
-    border: 0.5px solid #e5e5e5;
-    border-radius: 100px;
-    padding: 6px 14px 6px 8px;
+  .btn-secondary:hover { background: #ebebeb; }
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 14px 0; font-size: 13px; color: #bbb; }
+  .loading-dot { width: 6px; height: 6px; border-radius: 50%; background: #000; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+  .quote { font-size: 13px; color: #999; font-style: italic; line-height: 1.6; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 0.5px solid #f0f0f0; }
+  .empty { font-size: 14px; color: #ccc; text-align: center; padding: 60px 0; }
+  .tag { display: inline-block; background: #f0f0f0; border-radius: 6px; padding: 3px 8px; font-size: 11px; color: #666; font-weight: 500; margin-right: 4px; }
+  .session-btn {
+    background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 12px;
+    padding: 16px 20px; width: 100%; text-align: left; cursor: pointer;
+    margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    font-family: inherit; transition: border-color 0.15s;
   }
-  .avatar-sm {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #000;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 600;
-    flex-shrink: 0;
+  .session-btn:hover { border-color: #000; }
+  .session-btn.suggested { border-color: #000; background: #fff; }
+  .input-row { display: flex; gap: 8px; margin-top: 10px; }
+  .input-field {
+    flex: 1; background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 8px;
+    padding: 10px 12px; color: #000; font-size: 14px; outline: none;
+    font-family: inherit; transition: border-color 0.15s;
   }
-  .chip-name {
-    font-size: 12px;
-    color: #666;
-    font-weight: 500;
-  }
-  .marcus-card {
-    background: #000;
-    border-radius: 16px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
-  }
-  .marcus-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #666;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-  }
-  .marcus-name {
-    font-size: 16px;
-    font-weight: 500;
-    color: #fff;
-    margin-bottom: 16px;
-  }
-  .marcus-text {
-    font-size: 15px;
-    color: #ccc;
-    line-height: 1.75;
-  }
-  .specialist-card {
-    border: 0.5px solid #e5e5e5;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 8px;
-    transition: border-color 0.15s;
-  }
-  .specialist-card:hover { border-color: #ccc; }
-  .specialist-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 20px;
-    cursor: pointer;
-    background: #fff;
-    border: none;
-    width: 100%;
-    text-align: left;
-  }
-  .avatar-md {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #f0f0f0;
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-  .specialist-info { flex: 1; }
-  .specialist-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #000;
-    font-family: inherit;
-  }
-  .specialist-title {
-    font-size: 12px;
-    color: #999;
-    margin-top: 1px;
-    font-family: inherit;
-  }
-  .chevron {
-    font-size: 12px;
-    color: #ccc;
-    transition: transform 0.2s;
-    font-family: inherit;
-  }
-  .chevron.open { transform: rotate(180deg); }
-  .specialist-body {
-    padding: 0 20px 20px;
-    border-top: 0.5px solid #f0f0f0;
-    font-size: 14px;
-    color: #555;
-    line-height: 1.7;
-    padding-top: 16px;
-  }
-  .checkin-quote {
-    font-size: 13px;
-    color: #999;
-    font-style: italic;
-    line-height: 1.6;
-    margin-bottom: 24px;
-    padding-bottom: 24px;
-    border-bottom: 0.5px solid #f0f0f0;
-  }
-  .loading-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 16px 0;
-    font-size: 13px;
-    color: #bbb;
-  }
-  .loading-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #000;
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.2; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1); }
-  }
-  .history-item {
-    border: 0.5px solid #e5e5e5;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
-  .history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-  }
-  .history-date {
-    font-size: 12px;
-    color: #999;
-    margin-bottom: 3px;
-    font-family: inherit;
-  }
-  .history-preview {
-    font-size: 14px;
-    color: #000;
-    font-family: inherit;
-  }
-  .history-body {
-    padding: 0 20px 20px;
-    border-top: 0.5px solid #f0f0f0;
-    padding-top: 16px;
-  }
-  .empty-state {
-    font-size: 14px;
-    color: #ccc;
-    text-align: center;
-    padding: 60px 0;
-  }
-  .meeting-date {
-    font-size: 12px;
-    color: #bbb;
-    margin-bottom: 24px;
-    font-weight: 400;
-  }
-  .no-meeting {
-    font-size: 14px;
-    color: #ccc;
-    text-align: center;
-    padding: 80px 0;
-  }
-  .panel-section-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #ccc;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    margin-top: 8px;
-  }
+  .input-field:focus { border-color: #000; background: #fff; }
+  .input-field::placeholder { color: #ccc; }
+  .input-sm { width: 70px; flex: none; }
+  .ex-card { background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+  .ex-name { font-size: 14px; font-weight: 500; color: #000; margin-bottom: 3px; }
+  .ex-note { font-size: 12px; color: #bbb; margin-bottom: 10px; }
+  .panel-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
+  .chip { display: flex; align-items: center; gap: 7px; background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 100px; padding: 5px 12px 5px 7px; }
+  .chip-avatar { width: 22px; height: 22px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+  .chip-name { font-size: 12px; color: #666; font-weight: 500; }
+  .divider { height: 0.5px; background: #f0f0f0; margin: 24px 0; }
+  .stat-row { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat { flex: 1; background: #f9f9f9; border-radius: 10px; padding: 14px 16px; }
+  .stat-val { font-size: 22px; font-weight: 300; color: #000; }
+  .stat-label { font-size: 11px; color: #bbb; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
   input:focus, button:focus { outline: none; }
+  .context-banner { background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; color: #888; line-height: 1.5; }
+  .context-banner strong { color: #555; font-weight: 500; }
 `;
 
-function SpecialistCard({ specialist, response, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const sp = SPECIALISTS[specialist];
+// ── SPECIALIST CARD ───────────────────────────────────────────────────────────
+function SpecialistCard({ id, response, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen || false);
+  const sp = SPECIALISTS[id];
   return (
-    <div className="specialist-card">
-      <button className="specialist-header" onClick={() => setOpen(o => !o)}>
-        <div className="avatar-md">{sp.avatar}</div>
-        <div className="specialist-info">
-          <div className="specialist-name">{sp.name}</div>
-          <div className="specialist-title">{sp.title}</div>
+    <div className="card">
+      <button className="card-header" onClick={() => setOpen(o => !o)}>
+        <div className="avatar">{sp.avatar}</div>
+        <div className="card-info">
+          <div className="card-name">{sp.name}</div>
+          <div className="card-sub">{sp.title}</div>
         </div>
         <span className={`chevron ${open ? "open" : ""}`}>▾</span>
       </button>
-      {open && <div className="specialist-body">{response}</div>}
+      {open && <div className="card-body">{response}</div>}
     </div>
   );
 }
 
-function HistoryItem({ log }) {
-  const [open, setOpen] = useState(false);
+// ── LOG SESSION ───────────────────────────────────────────────────────────────
+function LogSession({ sessionType, trainingSessions, onSave, onBack }) {
+  const prog = PROGRAM[sessionType];
+  const [weights, setWeights] = useState(() => {
+    const w = {};
+    prog.exercises.forEach(ex => { w[ex.id] = getLastWeight(trainingSessions, ex.id); });
+    return w;
+  });
+  const [rpe, setRpe] = useState({});
+
+  function handleSave() {
+    const session = {
+      id: Date.now(),
+      date: new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
+      dateRaw: new Date().toISOString(),
+      type: sessionType,
+      exercises: prog.exercises.map(ex => ({
+        id: ex.id, name: ex.name, sets: ex.sets, reps: ex.reps,
+        weight: weights[ex.id] || null, rpe: rpe[ex.id] || null,
+      })),
+    };
+    onSave(session);
+  }
+
   return (
-    <div className="history-item">
-      <button className="history-header" onClick={() => setOpen(o => !o)}>
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#bbb", fontSize: 20, cursor: "pointer", padding: 0 }}>←</button>
         <div>
-          <div className="history-date">{log.date}</div>
-          <div className="history-preview">{log.input.slice(0, 70)}{log.input.length > 70 ? "…" : ""}</div>
+          <div style={{ fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 500 }}>{prog.label}</div>
+          <div style={{ fontSize: 20, fontWeight: 300 }}>{prog.name}</div>
         </div>
-        <span className="chevron" style={{ marginLeft: 12 }}>▾</span>
-      </button>
-      {open && (
-        <div className="history-body">
-          <div className="checkin-quote">"{log.input}"</div>
-          {log.headCoach && (
-            <div className="marcus-card" style={{ marginBottom: 16 }}>
-              <div className="marcus-label">Marcus · Head Coach</div>
-              <div className="marcus-text">{log.headCoach}</div>
+      </div>
+
+      {prog.exercises.map(ex => (
+        <div className="ex-card" key={ex.id}>
+          <div className="ex-name">{ex.name}</div>
+          <div className="ex-note">{ex.sets}×{ex.reps || "—"}{ex.note ? ` · ${ex.note}` : ""}</div>
+          {ex.reps && (
+            <div className="input-row">
+              <input
+                className="input-field"
+                type="number"
+                value={weights[ex.id]}
+                onChange={e => setWeights(w => ({ ...w, [ex.id]: e.target.value }))}
+                placeholder={weights[ex.id] ? `Last: ${weights[ex.id]}kg` : "Weight (kg)"}
+              />
+              <input
+                className="input-field input-sm"
+                type="number" min="1" max="10"
+                value={rpe[ex.id] || ""}
+                onChange={e => setRpe(r => ({ ...r, [ex.id]: e.target.value }))}
+                placeholder="RPE"
+              />
             </div>
           )}
-          {log.specialists && SPECIALIST_ORDER.filter(k => log.specialists[k]).map(k => (
-            <SpecialistCard key={k} specialist={k} response={log.specialists[k]} />
-          ))}
         </div>
+      ))}
+
+      <button className="btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
+        Save Session
+      </button>
+    </div>
+  );
+}
+
+// ── TRAINING TAB ──────────────────────────────────────────────────────────────
+function TrainingTab({ trainingSessions, onLogSession }) {
+  const [logging, setLogging] = useState(null);
+
+  const today = new Date().toLocaleDateString("en-AU", { weekday: "long" }).slice(0, 3);
+  const suggested = WEEKLY[today] || null;
+
+  const totalSessions = trainingSessions.length;
+  const thisWeek = trainingSessions.filter(s => {
+    const d = new Date(s.dateRaw);
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    return d > weekAgo;
+  }).length;
+
+  if (logging) {
+    return (
+      <LogSession
+        sessionType={logging}
+        trainingSessions={trainingSessions}
+        onSave={session => { onLogSession(session); setLogging(null); }}
+        onBack={() => setLogging(null)}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="stat-row">
+        <div className="stat">
+          <div className="stat-val">{totalSessions}</div>
+          <div className="stat-label">Total sessions</div>
+        </div>
+        <div className="stat">
+          <div className="stat-val">{thisWeek}</div>
+          <div className="stat-label">This week</div>
+        </div>
+      </div>
+
+      {suggested && (
+        <>
+          <div className="section-label">Today · {today}</div>
+          <button className="session-btn suggested" onClick={() => setLogging(suggested)}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{PROGRAM[suggested].name}</div>
+              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{PROGRAM[suggested].label}</div>
+            </div>
+            <span style={{ fontSize: 18, color: "#bbb" }}>→</span>
+          </button>
+          <div className="divider" />
+        </>
+      )}
+
+      <div className="section-label">Log a Session</div>
+      {Object.entries(PROGRAM).map(([key, prog]) => (
+        <button key={key} className="session-btn" onClick={() => setLogging(key)}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{prog.name}</div>
+            <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{prog.label}</div>
+          </div>
+          <span style={{ fontSize: 18, color: "#bbb" }}>→</span>
+        </button>
+      ))}
+
+      {trainingSessions.length > 0 && (
+        <>
+          <div className="divider" />
+          <div className="section-label">Recent</div>
+          {[...trainingSessions].reverse().slice(0, 5).map(s => {
+            const prog = PROGRAM[s.type];
+            return (
+              <div key={s.id} style={{ marginBottom: 8, padding: "12px 16px", background: "#f9f9f9", borderRadius: 10, border: "0.5px solid #e5e5e5" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{prog?.name}</div>
+                  <div style={{ fontSize: 12, color: "#bbb" }}>{s.date}</div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {s.exercises?.filter(e => e.weight).map(e => (
+                    <span key={e.id} className="tag">{e.name} {e.weight}kg{e.rpe ? ` · RPE ${e.rpe}` : ""}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </>
       )}
     </div>
   );
 }
 
-export default function App() {
-  const [logs, setLogs] = useState(loadLogs);
-  const [view, setView] = useState("checkin");
+// ── CHECKIN TAB ───────────────────────────────────────────────────────────────
+function CheckInTab({ trainingSessions, onSubmit, loading }) {
   const [input, setInput] = useState("");
+
+  const recentTraining = trainingSessions.slice(-3);
+  const hasTraining = recentTraining.length > 0;
+
+  return (
+    <div>
+      <p style={{ fontSize: 15, color: "#666", lineHeight: 1.7, marginBottom: 24, maxWidth: 520 }}>
+        Just talk. Tell the panel how you're going — sleep, food, energy, padel, anything. Your recent training data feeds in automatically.
+      </p>
+
+      {hasTraining && (
+        <div className="context-banner">
+          <strong>Panel will also see:</strong> {recentTraining.map(s => `${PROGRAM[s.type]?.name} (${s.date})`).join(", ")}
+        </div>
+      )}
+
+      <textarea
+        className="textarea"
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        placeholder="How's everything going today…"
+        rows={5}
+      />
+      <button className="btn-primary" onClick={() => onSubmit(input)} disabled={loading || !input.trim()}>
+        {loading ? "Panel is meeting…" : "Call the Meeting"}
+      </button>
+
+      <div className="panel-chips">
+        {Object.entries(SPECIALISTS).map(([key, sp]) => (
+          <div className="chip" key={key}>
+            <div className="chip-avatar">{sp.avatar}</div>
+            <span className="chip-name">{sp.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── MEETING TAB ───────────────────────────────────────────────────────────────
+function MeetingTab({ meeting, loading, loadingStep }) {
+  const bottomRef = useRef(null);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [meeting, loadingStep]);
+
+  if (!meeting && !loading) return <div className="empty">No meeting yet. Check in first.</div>;
+
+  return (
+    <div>
+      {meeting && (
+        <>
+          <div style={{ fontSize: 12, color: "#bbb", marginBottom: 20 }}>{meeting.date}</div>
+          <div className="quote">"{meeting.input}"</div>
+
+          {meeting.headCoach && (
+            <div className="marcus-card">
+              <div className="marcus-label">Marcus · Head Coach</div>
+              <div className="marcus-text">{meeting.headCoach}</div>
+            </div>
+          )}
+
+          {loading && (
+            <div className="loading-row">
+              <div className="loading-dot" />
+              <span>{loadingStep}</span>
+            </div>
+          )}
+
+          {meeting.specialists && Object.keys(meeting.specialists).length > 0 && (
+            <>
+              <div className="section-label" style={{ marginTop: 20 }}>Panel Input</div>
+              {SPECIALIST_ORDER.filter(k => meeting.specialists[k]).map(k => (
+                <SpecialistCard key={k} id={k} response={meeting.specialists[k]} />
+              ))}
+            </>
+          )}
+        </>
+      )}
+      <div ref={bottomRef} />
+    </div>
+  );
+}
+
+// ── HISTORY TAB ───────────────────────────────────────────────────────────────
+function HistoryTab({ meetings }) {
+  if (meetings.length === 0) return <div className="empty">No meetings yet.</div>;
+
+  return (
+    <div>
+      {[...meetings].reverse().map(m => {
+        const [open, setOpen] = useState(false);
+        return (
+          <div className="card" key={m.id}>
+            <button className="card-header" onClick={() => setOpen(o => !o)}>
+              <div className="card-info">
+                <div style={{ fontSize: 12, color: "#bbb", marginBottom: 2 }}>{m.date}</div>
+                <div className="card-name" style={{ fontWeight: 400 }}>{m.input.slice(0, 65)}{m.input.length > 65 ? "…" : ""}</div>
+              </div>
+              <span className={`chevron ${open ? "open" : ""}`}>▾</span>
+            </button>
+            {open && (
+              <div className="card-body">
+                <div className="quote">"{m.input}"</div>
+                {m.headCoach && (
+                  <div className="marcus-card" style={{ marginBottom: 16 }}>
+                    <div className="marcus-label">Marcus · Head Coach</div>
+                    <div className="marcus-text">{m.headCoach}</div>
+                  </div>
+                )}
+                {m.specialists && SPECIALIST_ORDER.filter(k => m.specialists[k]).map(k => (
+                  <SpecialistCard key={k} id={k} response={m.specialists[k]} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+export default function App() {
+  const [trainingSessions, setTrainingSessions] = useState(() => load(SESSIONS_KEY));
+  const [meetings, setMeetings] = useState(() => load(MEETINGS_KEY));
+  const [view, setView] = useState("checkin");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [currentMeeting, setCurrentMeeting] = useState(null);
-  const bottomRef = useRef(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [currentMeeting, loadingStep]);
+  function handleLogSession(session) {
+    const updated = [...trainingSessions, session];
+    setTrainingSessions(updated);
+    save(SESSIONS_KEY, updated);
+  }
 
-  async function callSpecialist(key, userInput, recentLogs) {
+  async function callSpecialist(key, userInput, trainingContext) {
     const sp = SPECIALISTS[key];
-    const history = recentLogs.slice(-5).map(l => `[${l.date}] ${l.input}`).join("\n");
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 1000,
-        system: `${sp.personality}\n\nYou are one specialist in a panel reviewing this athlete's daily check-in. Respond only from your domain. Be specific, be yourself. 3-5 sentences max. No bullet points — speak naturally.\n\nRecent history:\n${history || "No prior history."}`,
+        system: `${sp.personality}\n\nYou are one specialist in a performance panel. Respond only from your domain. Be specific and natural. 3-5 sentences. No bullet points.${trainingContext}`,
         messages: [{ role: "user", content: `Athlete check-in: "${userInput}"` }],
       }),
     });
@@ -479,8 +544,7 @@ export default function App() {
     return data.content?.find(b => b.type === "text")?.text || "";
   }
 
-  async function callHeadCoach(userInput, specialistResponses, recentLogs) {
-    const history = recentLogs.slice(-5).map(l => `[${l.date}] ${l.input} → ${l.headCoach || ""}`).join("\n");
+  async function callHeadCoach(userInput, specialistResponses, trainingContext) {
     const panel = Object.entries(specialistResponses)
       .map(([key, val]) => `${SPECIALISTS[key].name} (${SPECIALISTS[key].title}): ${val}`)
       .join("\n\n");
@@ -490,7 +554,7 @@ export default function App() {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 1000,
-        system: `${SPECIALISTS.head.personality}\n\nRecent history:\n${history || "No prior history."}`,
+        system: `${SPECIALISTS.head.personality}${trainingContext}`,
         messages: [{ role: "user", content: `Athlete check-in: "${userInput}"\n\nPanel input:\n${panel}` }],
       }),
     });
@@ -498,20 +562,19 @@ export default function App() {
     return data.content?.find(b => b.type === "text")?.text || "";
   }
 
-  async function runMeeting() {
-    if (!input.trim() || loading) return;
-    const userInput = input.trim();
-    setInput("");
+  async function runMeeting(userInput) {
+    if (!userInput.trim() || loading) return;
     setLoading(true);
     setView("meeting");
     const date = new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const trainingContext = buildTrainingContext(trainingSessions);
     setCurrentMeeting({ input: userInput, specialists: {}, headCoach: null, date });
 
     const specialistResponses = {};
     for (const key of SPECIALIST_ORDER) {
       setLoadingStep(`${SPECIALISTS[key].name} is reviewing…`);
       try {
-        const response = await callSpecialist(key, userInput, logs);
+        const response = await callSpecialist(key, userInput, trainingContext);
         specialistResponses[key] = response;
         setCurrentMeeting(prev => ({ ...prev, specialists: { ...prev.specialists, [key]: response } }));
       } catch {
@@ -521,113 +584,41 @@ export default function App() {
 
     setLoadingStep("Marcus is calling it…");
     let headCoach = "";
-    try { headCoach = await callHeadCoach(userInput, specialistResponses, logs); }
+    try { headCoach = await callHeadCoach(userInput, specialistResponses, trainingContext); }
     catch { headCoach = "Couldn't reach Marcus right now."; }
 
-    const finalLog = { id: Date.now(), date, input: userInput, specialists: specialistResponses, headCoach };
-    setCurrentMeeting(finalLog);
-    const updated = [...logs, finalLog];
-    setLogs(updated);
-    saveLogs(updated);
+    const finalMeeting = { id: Date.now(), date, input: userInput, specialists: specialistResponses, headCoach };
+    setCurrentMeeting(finalMeeting);
+    const updated = [...meetings, finalMeeting];
+    setMeetings(updated);
+    save(MEETINGS_KEY, updated);
     setLoading(false);
     setLoadingStep("");
   }
 
+  const totalSessions = trainingSessions.length;
+
   return (
     <>
-      <style>{styles}</style>
+      <style>{CSS}</style>
       <div className="app">
         <div className="header">
           <div className="header-label">Performance Panel</div>
           <div className="header-title">The Boardroom</div>
-          <div className="header-sub">8 specialists · 1 athlete · {logs.length} session{logs.length !== 1 ? "s" : ""} logged</div>
+          <div className="header-sub">8 specialists · {totalSessions} session{totalSessions !== 1 ? "s" : ""} logged · {meetings.length} meeting{meetings.length !== 1 ? "s" : ""}</div>
         </div>
 
         <div className="nav">
-          {[["checkin", "Check In"], ["meeting", "Meeting"], ["history", "History"]].map(([k, label]) => (
+          {[["checkin", "Check In"], ["meeting", "Meeting"], ["training", "Training"], ["history", "History"]].map(([k, label]) => (
             <button key={k} className={`nav-btn ${view === k ? "active" : ""}`} onClick={() => setView(k)}>{label}</button>
           ))}
         </div>
 
         <div className="content">
-
-          {view === "checkin" && (
-            <>
-              <p className="intro-text">Just talk. Tell the panel how you're going — sleep, food, energy, training, padel, anything. They'll each take what's relevant.</p>
-              <div className="section-label">Example</div>
-              <div className="example-block">
-                "Slept maybe 5 hours, woke at 3am couldn't get back. Had eggs for breakfast, skipped lunch. Squats this morning felt heavy but got through it — went up 2.5kg. Padel tonight. Feeling a bit flat overall."
-              </div>
-              <textarea
-                className="textarea"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="How's everything going today…"
-                rows={5}
-              />
-              <button className="cta-btn" onClick={runMeeting} disabled={loading || !input.trim()}>
-                {loading ? "Panel is meeting…" : "Call the Meeting"}
-              </button>
-
-              <div style={{ marginTop: 48 }}>
-                <div className="section-label">Your Panel</div>
-                <div className="panel-grid">
-                  {Object.entries(SPECIALISTS).map(([key, sp]) => (
-                    <div className="panel-chip" key={key}>
-                      <div className="avatar-sm">{sp.avatar}</div>
-                      <span className="chip-name">{sp.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {view === "meeting" && (
-            <>
-              {!currentMeeting && !loading && (
-                <div className="no-meeting">No meeting yet. Check in first.</div>
-              )}
-              {currentMeeting && (
-                <>
-                  <div className="meeting-date">{currentMeeting.date}</div>
-                  <div className="checkin-quote">"{currentMeeting.input}"</div>
-
-                  {currentMeeting.headCoach && (
-                    <div className="marcus-card">
-                      <div className="marcus-label">Marcus · Head Coach</div>
-                      <div className="marcus-text">{currentMeeting.headCoach}</div>
-                    </div>
-                  )}
-
-                  {loading && (
-                    <div className="loading-row">
-                      <div className="loading-dot" />
-                      <span>{loadingStep}</span>
-                    </div>
-                  )}
-
-                  {currentMeeting.specialists && Object.keys(currentMeeting.specialists).length > 0 && (
-                    <>
-                      <div className="panel-section-label" style={{ marginTop: 24 }}>Panel Input</div>
-                      {SPECIALIST_ORDER.filter(k => currentMeeting.specialists[k]).map(k => (
-                        <SpecialistCard key={k} specialist={k} response={currentMeeting.specialists[k]} defaultOpen={false} />
-                      ))}
-                    </>
-                  )}
-                  <div ref={bottomRef} />
-                </>
-              )}
-            </>
-          )}
-
-          {view === "history" && (
-            <>
-              {logs.length === 0 && <div className="empty-state">No meetings yet.</div>}
-              {[...logs].reverse().map(log => <HistoryItem key={log.id} log={log} />)}
-            </>
-          )}
-
+          {view === "checkin" && <CheckInTab trainingSessions={trainingSessions} onSubmit={runMeeting} loading={loading} />}
+          {view === "meeting" && <MeetingTab meeting={currentMeeting} loading={loading} loadingStep={loadingStep} />}
+          {view === "training" && <TrainingTab trainingSessions={trainingSessions} onLogSession={handleLogSession} />}
+          {view === "history" && <HistoryTab meetings={meetings} />}
         </div>
       </div>
     </>
