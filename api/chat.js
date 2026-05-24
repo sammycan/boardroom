@@ -8,6 +8,9 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const parsed = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    parsed.model = 'claude-sonnet-4-5-20250929';
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -15,11 +18,19 @@ export default async function handler(req, res) {
         'x-api-key': process.env.VITE_ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
       },
-      body: body,
+      body: JSON.stringify(parsed),
     });
-    const data = await response.json();
-    res.status(response.status).json(data);
+
+    const text = await response.text();
+    console.log('Anthropic status:', response.status, 'body:', text);
+    
+    try {
+      res.status(response.status).json(JSON.parse(text));
+    } catch {
+      res.status(response.status).send(text);
+    }
   } catch (err) {
+    console.error('Handler error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }
