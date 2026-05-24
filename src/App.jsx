@@ -4,72 +4,63 @@ const SPECIALISTS = {
   head: {
     name: "Marcus",
     title: "Head Coach",
-    short: "HC",
-    color: "#c8a96e",
+    color: "#000000",
     avatar: "M",
     personality: `You are Marcus, the Head Coach and performance director. You've worked in elite sport for 20 years — rugby, triathlon, now private athlete coaching. You're calm, authoritative, and integrative. You listen to all your specialists, weigh their input, and give the athlete one clear direction. You don't hedge. You're not harsh but you don't sugarcoat either. You speak like someone who's seen it all and still gives a damn. You run the board meeting, synthesise the specialists' input, and deliver the final recommendation. Format: brief acknowledgment of the check-in, then "The panel said:" followed by 2-3 key specialist insights in your own words, then "My call:" with your specific recommendation for the next 24-48 hours.`,
   },
   strength: {
     name: "Davo",
     title: "Strength Coach",
-    short: "SC",
-    color: "#e84a2e",
     avatar: "D",
+    color: "#111",
     personality: `You are Davo, strength and conditioning coach. Ex-powerlifter, coached athletes for 15 years. You're direct, a little blunt, occasionally dry. You care about load management and progressive overload — you hate junk volume and you hate skipped sessions equally. You speak in plain terms. No fluff. If the numbers are good you say so. If they're skipping too much or overreaching you call it. You look at: training load, weights logged, session RPE, frequency, recovery between sessions.`,
   },
   diet: {
     name: "Priya",
     title: "Dietician",
-    short: "RD",
-    color: "#2eb87a",
     avatar: "P",
+    color: "#111",
     personality: `You are Priya, sports dietician. You're measured, evidence-based, and quietly passionate about food as fuel. You don't moralize about what people eat — you just connect dots between nutrition and performance. You notice patterns. You're warm but precise. You flag under-fuelling, poor timing, and micronutrient gaps without being preachy. You look at: what they ate, when they ate, energy levels relative to food intake, hydration mentions.`,
   },
   sleep: {
     name: "Jonah",
     title: "Sleep Coach",
-    short: "ZZ",
-    color: "#6e8ee8",
     avatar: "J",
+    color: "#111",
     personality: `You are Jonah, sleep and recovery specialist. You're calm, almost annoyingly so. You've studied sleep science for a decade and you know that most athletes underestimate how much it affects everything. You're not judgmental about bad nights — life happens — but you're relentless about patterns. You flag sleep debt, poor sleep quality, and the downstream effects on training and mood. You look at: hours slept, sleep quality mentioned, time of training relative to sleep, stress or mental load mentions.`,
   },
   running: {
     name: "Kai",
     title: "Running Coach",
-    short: "RC",
-    color: "#e8c42e",
     avatar: "K",
+    color: "#111",
     personality: `You are Kai, running and conditioning coach. You're enthusiastic without being annoying about it. Trail runner, former competitive middle-distance athlete. You geek out on effort zones, terrain, and the mental side of running. You encourage the trails and driveway work, help calibrate effort, and push for consistency over intensity. You look at: any running or conditioning logged, effort level, terrain, duration.`,
   },
   padel: {
     name: "Sofia",
     title: "Padel Coach",
-    short: "PC",
-    color: "#e86eb8",
     avatar: "S",
+    color: "#111",
     personality: `You are Sofia, padel coach. You played on the European circuit for 8 years before coaching. You're competitive, fun, and strategic. You think about padel holistically — not just technique but how physical condition, fatigue, and movement quality affect play. You flag when they're going into a game under-recovered and when they should prioritise padel over a gym session. You look at: any padel mentioned, energy/fatigue state relative to games, movement quality mentions.`,
   },
   yoga: {
     name: "Ren",
-    title: "Yoga & Mobility",
-    short: "YM",
-    color: "#a06ee8",
+    title: "Mobility & Yoga",
     avatar: "R",
+    color: "#111",
     personality: `You are Ren, yoga and mobility specialist. You're grounded, a little philosophical, but never preachy. You believe movement quality underpins everything and that most athletes neglect it until something breaks. You're patient. You flag tightness, missed mobility work, and stress held in the body. You gently advocate for the 5-min mobility finishes and rest days. You look at: any mobility or yoga mentioned, stress or tension cues, training density.`,
   },
   science: {
     name: "Dr. Ellis",
     title: "Sports Scientist",
-    short: "SS",
-    color: "#4ecdc4",
     avatar: "E",
+    color: "#111",
     personality: `You are Dr. Ellis, sports scientist. You're precise, analytical, and occasionally nerdy in the best way. You look at patterns across the whole dataset — training load, sleep, nutrition, HRV if available — and identify trends the others might miss. You speak in slightly more technical terms but always translate to practical meaning. You're the one who spots overtraining before it happens, or notices the correlation between bad sleep and poor session RPE. You look at: overall patterns, load trends, recovery indicators, consistency data.`,
   },
 };
 
 const SPECIALIST_ORDER = ["strength", "diet", "sleep", "running", "padel", "yoga", "science"];
-
-const STORAGE_KEY = "boardroom_logs";
+const STORAGE_KEY = "boardroom_v2_logs";
 
 function loadLogs() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
@@ -78,74 +69,379 @@ function saveLogs(logs) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); } catch {}
 }
 
-function MeetingCard({ specialist, response, isNew }) {
-  const [expanded, setExpanded] = useState(isNew);
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #ffffff; }
+  .app {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    background: #ffffff;
+    color: #000000;
+    min-height: 100vh;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .header {
+    padding: 48px 40px 32px;
+    border-bottom: 0.5px solid #e5e5e5;
+  }
+  .header-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #999;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header-title {
+    font-size: 36px;
+    font-weight: 300;
+    color: #000;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .header-sub {
+    font-size: 13px;
+    color: #bbb;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+  .nav {
+    display: flex;
+    border-bottom: 0.5px solid #e5e5e5;
+    padding: 0 40px;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    border-bottom: 1.5px solid transparent;
+    padding: 16px 0;
+    margin-right: 32px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #bbb;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .nav-btn.active {
+    color: #000;
+    border-bottom-color: #000;
+  }
+  .content {
+    padding: 40px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #bbb;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .intro-text {
+    font-size: 15px;
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 32px;
+    max-width: 520px;
+  }
+  .example-block {
+    background: #f9f9f9;
+    border: 0.5px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: #999;
+    line-height: 1.7;
+    font-style: italic;
+    max-width: 520px;
+  }
+  .textarea {
+    width: 100%;
+    background: #f9f9f9;
+    border: 0.5px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 20px 24px;
+    color: #000;
+    font-size: 15px;
+    line-height: 1.7;
+    resize: none;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+    min-height: 140px;
+  }
+  .textarea:focus { border-color: #000; background: #fff; }
+  .textarea::placeholder { color: #ccc; }
+  .cta-btn {
+    width: 100%;
+    margin-top: 12px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .cta-btn:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
+  .cta-btn:not(:disabled):hover { opacity: 0.8; }
+  .panel-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 40px;
+  }
+  .panel-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9f9f9;
+    border: 0.5px solid #e5e5e5;
+    border-radius: 100px;
+    padding: 6px 14px 6px 8px;
+  }
+  .avatar-sm {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #000;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .chip-name {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+  }
+  .marcus-card {
+    background: #000;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .marcus-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #666;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .marcus-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .marcus-text {
+    font-size: 15px;
+    color: #ccc;
+    line-height: 1.75;
+  }
+  .specialist-card {
+    border: 0.5px solid #e5e5e5;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .specialist-card:hover { border-color: #ccc; }
+  .specialist-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    background: #fff;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+  .avatar-md {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .specialist-info { flex: 1; }
+  .specialist-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #000;
+    font-family: inherit;
+  }
+  .specialist-title {
+    font-size: 12px;
+    color: #999;
+    margin-top: 1px;
+    font-family: inherit;
+  }
+  .chevron {
+    font-size: 12px;
+    color: #ccc;
+    transition: transform 0.2s;
+    font-family: inherit;
+  }
+  .chevron.open { transform: rotate(180deg); }
+  .specialist-body {
+    padding: 0 20px 20px;
+    border-top: 0.5px solid #f0f0f0;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.7;
+    padding-top: 16px;
+  }
+  .checkin-quote {
+    font-size: 13px;
+    color: #999;
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 0.5px solid #f0f0f0;
+  }
+  .loading-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    font-size: 13px;
+    color: #bbb;
+  }
+  .loading-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #000;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .history-item {
+    border: 0.5px solid #e5e5e5;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+  }
+  .history-date {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 3px;
+    font-family: inherit;
+  }
+  .history-preview {
+    font-size: 14px;
+    color: #000;
+    font-family: inherit;
+  }
+  .history-body {
+    padding: 0 20px 20px;
+    border-top: 0.5px solid #f0f0f0;
+    padding-top: 16px;
+  }
+  .empty-state {
+    font-size: 14px;
+    color: #ccc;
+    text-align: center;
+    padding: 60px 0;
+  }
+  .meeting-date {
+    font-size: 12px;
+    color: #bbb;
+    margin-bottom: 24px;
+    font-weight: 400;
+  }
+  .no-meeting {
+    font-size: 14px;
+    color: #ccc;
+    text-align: center;
+    padding: 80px 0;
+  }
+  .panel-section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #ccc;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 8px;
+  }
+  input:focus, button:focus { outline: none; }
+`;
+
+function SpecialistCard({ specialist, response, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const sp = SPECIALISTS[specialist];
   return (
-    <div
-      style={{
-        background: "#0a0a0a",
-        border: `1px solid ${sp.color}22`,
-        borderLeft: `3px solid ${sp.color}`,
-        borderRadius: "10px",
-        marginBottom: "8px",
-        overflow: "hidden",
-        animation: isNew ? "slideIn 0.3s ease" : "none",
-      }}
-    >
-      <button
-        onClick={() => setExpanded(e => !e)}
-        style={{
-          width: "100%", background: "none", border: "none", padding: "12px 14px",
-          display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", textAlign: "left",
-        }}
-      >
-        <div style={{
-          width: "32px", height: "32px", borderRadius: "50%",
-          background: `${sp.color}22`, border: `1px solid ${sp.color}44`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "12px", fontWeight: "800", color: sp.color, flexShrink: 0,
-        }}>{sp.avatar}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: "#e8e8e8" }}>{sp.name}</div>
-          <div style={{ fontSize: "10px", color: sp.color, textTransform: "uppercase", letterSpacing: "0.1em" }}>{sp.title}</div>
+    <div className="specialist-card">
+      <button className="specialist-header" onClick={() => setOpen(o => !o)}>
+        <div className="avatar-md">{sp.avatar}</div>
+        <div className="specialist-info">
+          <div className="specialist-name">{sp.name}</div>
+          <div className="specialist-title">{sp.title}</div>
         </div>
-        <div style={{ color: "#333", fontSize: "16px", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>↓</div>
+        <span className={`chevron ${open ? "open" : ""}`}>▾</span>
       </button>
-      {expanded && (
-        <div style={{ padding: "0 14px 14px", fontSize: "13px", color: "#aaa", lineHeight: "1.6", borderTop: "1px solid #111", paddingTop: "12px" }}>
-          {response}
-        </div>
-      )}
+      {open && <div className="specialist-body">{response}</div>}
     </div>
   );
 }
 
-function LogEntry({ log }) {
+function HistoryItem({ log }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "10px", marginBottom: "8px", overflow: "hidden" }}>
-      <button onClick={() => setOpen(o => !o)} style={{
-        width: "100%", background: "none", border: "none", padding: "12px 14px",
-        display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer",
-      }}>
-        <div style={{ textAlign: "left" }}>
-          <div style={{ fontSize: "12px", color: "#555", marginBottom: "2px" }}>{log.date}</div>
-          <div style={{ fontSize: "13px", color: "#ccc", lineHeight: "1.4" }}>{log.input.slice(0, 60)}{log.input.length > 60 ? "…" : ""}</div>
+    <div className="history-item">
+      <button className="history-header" onClick={() => setOpen(o => !o)}>
+        <div>
+          <div className="history-date">{log.date}</div>
+          <div className="history-preview">{log.input.slice(0, 70)}{log.input.length > 70 ? "…" : ""}</div>
         </div>
-        <div style={{ color: "#333", fontSize: "16px" }}>{open ? "↑" : "↓"}</div>
+        <span className="chevron" style={{ marginLeft: 12 }}>▾</span>
       </button>
       {open && (
-        <div style={{ borderTop: "1px solid #111", padding: "12px 14px" }}>
-          <div style={{ fontSize: "12px", color: "#555", marginBottom: "8px", fontStyle: "italic" }}>"{log.input}"</div>
+        <div className="history-body">
+          <div className="checkin-quote">"{log.input}"</div>
           {log.headCoach && (
-            <div style={{ background: `${SPECIALISTS.head.color}11`, border: `1px solid ${SPECIALISTS.head.color}33`, borderRadius: "8px", padding: "10px", marginBottom: "10px" }}>
-              <div style={{ fontSize: "10px", color: SPECIALISTS.head.color, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Marcus · Head Coach</div>
-              <div style={{ fontSize: "12px", color: "#bbb", lineHeight: "1.5" }}>{log.headCoach}</div>
+            <div className="marcus-card" style={{ marginBottom: 16 }}>
+              <div className="marcus-label">Marcus · Head Coach</div>
+              <div className="marcus-text">{log.headCoach}</div>
             </div>
           )}
-          {log.specialists && Object.entries(log.specialists).map(([key, val]) => (
-            <MeetingCard key={key} specialist={key} response={val} isNew={false} />
+          {log.specialists && SPECIALIST_ORDER.filter(k => log.specialists[k]).map(k => (
+            <SpecialistCard key={k} specialist={k} response={log.specialists[k]} />
           ))}
         </div>
       )}
@@ -155,7 +451,7 @@ function LogEntry({ log }) {
 
 export default function App() {
   const [logs, setLogs] = useState(loadLogs);
-  const [view, setView] = useState("checkin"); // checkin | meeting | history
+  const [view, setView] = useState("checkin");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
@@ -164,7 +460,7 @@ export default function App() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [currentMeeting, loading]);
+  }, [currentMeeting, loadingStep]);
 
   async function callSpecialist(key, userInput, recentLogs) {
     const sp = SPECIALISTS[key];
@@ -175,7 +471,7 @@ export default function App() {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,
-        system: `${sp.personality}\n\nYou are one of several specialists reviewing this athlete's daily check-in. Respond only from your domain. Be specific, be yourself. 3-5 sentences max. No bullet points — speak naturally.\n\nRecent check-in history:\n${history || "No prior history yet."}`,
+        system: `${sp.personality}\n\nYou are one specialist in a panel reviewing this athlete's daily check-in. Respond only from your domain. Be specific, be yourself. 3-5 sentences max. No bullet points — speak naturally.\n\nRecent history:\n${history || "No prior history."}`,
         messages: [{ role: "user", content: `Athlete check-in: "${userInput}"` }],
       }),
     });
@@ -188,7 +484,6 @@ export default function App() {
     const panel = Object.entries(specialistResponses)
       .map(([key, val]) => `${SPECIALISTS[key].name} (${SPECIALISTS[key].title}): ${val}`)
       .join("\n\n");
-
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -209,12 +504,12 @@ export default function App() {
     setInput("");
     setLoading(true);
     setView("meeting");
-    setCurrentMeeting({ input: userInput, specialists: {}, headCoach: null, date: new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) });
+    const date = new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    setCurrentMeeting({ input: userInput, specialists: {}, headCoach: null, date });
 
     const specialistResponses = {};
-
     for (const key of SPECIALIST_ORDER) {
-      setLoadingStep(`${SPECIALISTS[key].name} is reviewing...`);
+      setLoadingStep(`${SPECIALISTS[key].name} is reviewing…`);
       try {
         const response = await callSpecialist(key, userInput, logs);
         specialistResponses[key] = response;
@@ -224,22 +519,12 @@ export default function App() {
       }
     }
 
-    setLoadingStep("Marcus is calling it...");
+    setLoadingStep("Marcus is calling it…");
     let headCoach = "";
-    try {
-      headCoach = await callHeadCoach(userInput, specialistResponses, logs);
-    } catch {
-      headCoach = "Couldn't reach Marcus right now.";
-    }
+    try { headCoach = await callHeadCoach(userInput, specialistResponses, logs); }
+    catch { headCoach = "Couldn't reach Marcus right now."; }
 
-    const finalLog = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
-      input: userInput,
-      specialists: specialistResponses,
-      headCoach,
-    };
-
+    const finalLog = { id: Date.now(), date, input: userInput, specialists: specialistResponses, headCoach };
     setCurrentMeeting(finalLog);
     const updated = [...logs, finalLog];
     setLogs(updated);
@@ -249,186 +534,102 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      fontFamily: "'Palatino Linotype', 'Georgia', serif",
-      background: "#060606",
-      color: "#e8e8e8",
-      minHeight: "100vh",
-      maxWidth: "480px",
-      margin: "0 auto",
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      overflow: "hidden",
-    }}>
-      <style>{`
-        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-        input:focus { outline: none; border-color: #c8a96e !important; }
-        textarea:focus { outline: none; border-color: #c8a96e !important; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 2px; }
-      `}</style>
+    <>
+      <style>{styles}</style>
+      <div className="app">
+        <div className="header">
+          <div className="header-label">Performance Panel</div>
+          <div className="header-title">The Boardroom</div>
+          <div className="header-sub">8 specialists · 1 athlete · {logs.length} session{logs.length !== 1 ? "s" : ""} logged</div>
+        </div>
 
-      {/* Header */}
-      <div style={{ padding: "20px 16px 14px", borderBottom: "1px solid #111", flexShrink: 0 }}>
-        <div style={{ fontSize: "10px", color: "#444", textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: "4px" }}>Performance Panel</div>
-        <div style={{ fontSize: "28px", fontWeight: "400", letterSpacing: "-0.01em", color: "#e8e8e8" }}>The Boardroom</div>
-        <div style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}>8 specialists · 1 athlete</div>
-      </div>
+        <div className="nav">
+          {[["checkin", "Check In"], ["meeting", "Meeting"], ["history", "History"]].map(([k, label]) => (
+            <button key={k} className={`nav-btn ${view === k ? "active" : ""}`} onClick={() => setView(k)}>{label}</button>
+          ))}
+        </div>
 
-      {/* Nav */}
-      <div style={{ display: "flex", borderBottom: "1px solid #111", flexShrink: 0 }}>
-        {[["checkin", "Check In"], ["meeting", "Meeting"], ["history", "History"]].map(([key, label]) => (
-          <button key={key} onClick={() => setView(key)} style={{
-            flex: 1, background: "none", border: "none", padding: "10px",
-            color: view === key ? "#c8a96e" : "#333",
-            borderBottom: view === key ? "2px solid #c8a96e" : "2px solid transparent",
-            fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.12em", cursor: "pointer",
-            fontFamily: "inherit",
-          }}>{label}</button>
-        ))}
-      </div>
+        <div className="content">
 
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-
-        {/* CHECK IN */}
-        {view === "checkin" && (
-          <div style={{ padding: "20px 16px" }}>
-            <div style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", marginBottom: "20px" }}>
-              Just talk. Tell the panel how you're going — sleep, food, energy, training, padel, anything. They'll each take what's relevant.
-            </div>
-
-            <div style={{ fontSize: "11px", color: "#333", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Example</div>
-            <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "12px", marginBottom: "20px", fontSize: "12px", color: "#444", lineHeight: "1.6", fontStyle: "italic" }}>
-              "Slept maybe 5 hours, woke up at 3am couldn't get back. Had eggs for breakfast, skipped lunch. Squats this morning felt heavy but got through it — went up 2.5kg. Padel tonight. Feeling a bit flat overall."
-            </div>
-
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="How's everything going today..."
-              rows={5}
-              style={{
-                width: "100%", background: "#0a0a0a", border: "1px solid #1a1a1a",
-                borderRadius: "10px", padding: "14px", color: "#e8e8e8",
-                fontSize: "14px", lineHeight: "1.6", resize: "none",
-                boxSizing: "border-box", fontFamily: "inherit",
-              }}
-            />
-
-            <button
-              onClick={runMeeting}
-              disabled={loading || !input.trim()}
-              style={{
-                width: "100%", marginTop: "12px",
-                background: loading || !input.trim() ? "#111" : "#c8a96e",
-                color: loading || !input.trim() ? "#333" : "#000",
-                border: "none", borderRadius: "10px", padding: "14px",
-                fontSize: "13px", fontWeight: "700", cursor: loading || !input.trim() ? "default" : "pointer",
-                textTransform: "uppercase", letterSpacing: "0.12em", fontFamily: "inherit",
-                transition: "all 0.2s",
-              }}
-            >
-              {loading ? "Panel is meeting..." : "Call the Meeting →"}
-            </button>
-
-            {/* Panel preview */}
-            <div style={{ marginTop: "28px" }}>
-              <div style={{ fontSize: "10px", color: "#2a2a2a", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "12px" }}>Your Panel</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {Object.entries(SPECIALISTS).map(([key, sp]) => (
-                  <div key={key} style={{
-                    display: "flex", alignItems: "center", gap: "6px",
-                    background: "#0a0a0a", border: `1px solid ${sp.color}22`,
-                    borderRadius: "20px", padding: "5px 10px 5px 6px",
-                  }}>
-                    <div style={{
-                      width: "20px", height: "20px", borderRadius: "50%",
-                      background: `${sp.color}22`, display: "flex", alignItems: "center",
-                      justifyContent: "center", fontSize: "9px", fontWeight: "800", color: sp.color,
-                    }}>{sp.avatar}</div>
-                    <span style={{ fontSize: "11px", color: "#444" }}>{sp.name}</span>
-                  </div>
-                ))}
+          {view === "checkin" && (
+            <>
+              <p className="intro-text">Just talk. Tell the panel how you're going — sleep, food, energy, training, padel, anything. They'll each take what's relevant.</p>
+              <div className="section-label">Example</div>
+              <div className="example-block">
+                "Slept maybe 5 hours, woke at 3am couldn't get back. Had eggs for breakfast, skipped lunch. Squats this morning felt heavy but got through it — went up 2.5kg. Padel tonight. Feeling a bit flat overall."
               </div>
-            </div>
-          </div>
-        )}
+              <textarea
+                className="textarea"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="How's everything going today…"
+                rows={5}
+              />
+              <button className="cta-btn" onClick={runMeeting} disabled={loading || !input.trim()}>
+                {loading ? "Panel is meeting…" : "Call the Meeting"}
+              </button>
 
-        {/* MEETING */}
-        {view === "meeting" && (
-          <div style={{ padding: "16px" }}>
-            {!currentMeeting && !loading && (
-              <div style={{ color: "#333", fontSize: "13px", textAlign: "center", marginTop: "40px" }}>
-                No meeting yet. Check in first.
-              </div>
-            )}
-
-            {currentMeeting && (
-              <>
-                <div style={{ fontSize: "11px", color: "#333", marginBottom: "4px" }}>{currentMeeting.date}</div>
-                <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "12px", marginBottom: "16px", fontSize: "13px", color: "#555", fontStyle: "italic", lineHeight: "1.5" }}>
-                  "{currentMeeting.input}"
-                </div>
-
-                {/* Head Coach output */}
-                {currentMeeting.headCoach && (
-                  <div style={{
-                    background: `${SPECIALISTS.head.color}0d`,
-                    border: `1px solid ${SPECIALISTS.head.color}44`,
-                    borderRadius: "12px", padding: "16px", marginBottom: "16px",
-                    animation: "slideIn 0.4s ease",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                      <div style={{
-                        width: "36px", height: "36px", borderRadius: "50%",
-                        background: `${SPECIALISTS.head.color}22`, border: `2px solid ${SPECIALISTS.head.color}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "14px", fontWeight: "800", color: SPECIALISTS.head.color,
-                      }}>M</div>
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#e8e8e8" }}>Marcus</div>
-                        <div style={{ fontSize: "10px", color: SPECIALISTS.head.color, textTransform: "uppercase", letterSpacing: "0.1em" }}>Head Coach · Final Call</div>
-                      </div>
+              <div style={{ marginTop: 48 }}>
+                <div className="section-label">Your Panel</div>
+                <div className="panel-grid">
+                  {Object.entries(SPECIALISTS).map(([key, sp]) => (
+                    <div className="panel-chip" key={key}>
+                      <div className="avatar-sm">{sp.avatar}</div>
+                      <span className="chip-name">{sp.name}</span>
                     </div>
-                    <div style={{ fontSize: "14px", color: "#d4d4d4", lineHeight: "1.7" }}>{currentMeeting.headCoach}</div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
-                {/* Loading state */}
-                {loading && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 0", animation: "pulse 1.5s infinite" }}>
-                    <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c8a96e" }} />
-                    <div style={{ fontSize: "12px", color: "#555" }}>{loadingStep}</div>
-                  </div>
-                )}
+          {view === "meeting" && (
+            <>
+              {!currentMeeting && !loading && (
+                <div className="no-meeting">No meeting yet. Check in first.</div>
+              )}
+              {currentMeeting && (
+                <>
+                  <div className="meeting-date">{currentMeeting.date}</div>
+                  <div className="checkin-quote">"{currentMeeting.input}"</div>
 
-                {/* Specialist responses */}
-                {currentMeeting.specialists && Object.keys(currentMeeting.specialists).length > 0 && (
-                  <>
-                    <div style={{ fontSize: "10px", color: "#2a2a2a", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: "10px", marginTop: "4px" }}>Panel Input</div>
-                    {SPECIALIST_ORDER.filter(k => currentMeeting.specialists[k]).map(key => (
-                      <MeetingCard key={key} specialist={key} response={currentMeeting.specialists[key]} isNew={true} />
-                    ))}
-                  </>
-                )}
-                <div ref={bottomRef} />
-              </>
-            )}
-          </div>
-        )}
+                  {currentMeeting.headCoach && (
+                    <div className="marcus-card">
+                      <div className="marcus-label">Marcus · Head Coach</div>
+                      <div className="marcus-text">{currentMeeting.headCoach}</div>
+                    </div>
+                  )}
 
-        {/* HISTORY */}
-        {view === "history" && (
-          <div style={{ padding: "16px" }}>
-            {logs.length === 0 && (
-              <div style={{ color: "#333", fontSize: "13px", textAlign: "center", marginTop: "40px" }}>No meetings yet.</div>
-            )}
-            {[...logs].reverse().map(log => <LogEntry key={log.id} log={log} />)}
-          </div>
-        )}
+                  {loading && (
+                    <div className="loading-row">
+                      <div className="loading-dot" />
+                      <span>{loadingStep}</span>
+                    </div>
+                  )}
+
+                  {currentMeeting.specialists && Object.keys(currentMeeting.specialists).length > 0 && (
+                    <>
+                      <div className="panel-section-label" style={{ marginTop: 24 }}>Panel Input</div>
+                      {SPECIALIST_ORDER.filter(k => currentMeeting.specialists[k]).map(k => (
+                        <SpecialistCard key={k} specialist={k} response={currentMeeting.specialists[k]} defaultOpen={false} />
+                      ))}
+                    </>
+                  )}
+                  <div ref={bottomRef} />
+                </>
+              )}
+            </>
+          )}
+
+          {view === "history" && (
+            <>
+              {logs.length === 0 && <div className="empty-state">No meetings yet.</div>}
+              {[...logs].reverse().map(log => <HistoryItem key={log.id} log={log} />)}
+            </>
+          )}
+
+        </div>
       </div>
-    </div>
+    </>
   );
 }
