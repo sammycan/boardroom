@@ -469,7 +469,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5-20251001",
         max_tokens: 1000,
         system: `${sp.personality}\n\nYou are one specialist in a panel reviewing this athlete's daily check-in. Respond only from your domain. Be specific, be yourself. 3-5 sentences max. No bullet points — speak naturally.\n\nRecent history:\n${history || "No prior history."}`,
         messages: [{ role: "user", content: `Athlete check-in: "${userInput}"` }],
@@ -488,7 +488,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5-20251001",
         max_tokens: 1000,
         system: `${SPECIALISTS.head.personality}\n\nRecent history:\n${history || "No prior history."}`,
         messages: [{ role: "user", content: `Athlete check-in: "${userInput}"\n\nPanel input:\n${panel}` }],
