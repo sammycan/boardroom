@@ -437,81 +437,106 @@ function getLeadAndSupport(message) {
 // ── STYLES ────────────────────────────────────────────────────────────────────
 const CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #fff; }
-  .app { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #fff; color: #000; min-height: 100vh; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; height: 100vh; }
-  .header { padding: 32px 40px 20px; border-bottom: 0.5px solid #e5e5e5; flex-shrink: 0; }
-  .header-label { font-size: 11px; font-weight: 500; color: #999; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
-  .header-title { font-size: 30px; font-weight: 300; color: #000; letter-spacing: -0.02em; line-height: 1; }
-  .header-sub { font-size: 12px; color: #bbb; margin-top: 4px; }
-  .nav { display: flex; border-bottom: 0.5px solid #e5e5e5; padding: 0 40px; flex-shrink: 0; overflow-x: auto; }
-  .nav-btn { background: none; border: none; border-bottom: 1.5px solid transparent; padding: 12px 0; margin-right: 24px; font-size: 12px; font-weight: 500; color: #bbb; cursor: pointer; letter-spacing: 0.04em; font-family: inherit; transition: color 0.15s, border-color 0.15s; white-space: nowrap; flex-shrink: 0; }
-  .nav-btn.active { color: #000; border-bottom-color: #000; }
-  .content { flex: 1; overflow-y: auto; min-height: 0; }
-  .section-label { font-size: 11px; font-weight: 500; color: #bbb; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
-  .card { background: #fff; border: 0.5px solid #e5e5e5; border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
-  .card:hover { border-color: #ccc; }
-  .card-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #000; flex-shrink: 0; }
-  .avatar-black { background: #000; color: #fff; }
-  .card-info { flex: 1; }
-  .card-name { font-size: 13px; font-weight: 500; color: #000; font-family: inherit; }
-  .card-sub { font-size: 11px; color: #999; margin-top: 1px; font-family: inherit; }
-  .chevron { font-size: 10px; color: #ccc; transition: transform 0.2s; }
-  .chevron.open { transform: rotate(180deg); }
-  .card-body { padding: 12px 18px 16px; border-top: 0.5px solid #f0f0f0; font-size: 13px; color: #555; line-height: 1.7; }
-  .marcus-bubble { background: #000; border-radius: 14px; padding: 18px 22px; margin-bottom: 12px; }
-  .marcus-label { font-size: 10px; font-weight: 500; color: #555; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
-  .marcus-text { font-size: 14px; color: #ddd; line-height: 1.75; }
-  .btn-primary { width: 100%; margin-top: 10px; background: #000; color: #fff; border: none; border-radius: 12px; padding: 14px 24px; font-size: 13px; font-weight: 500; cursor: pointer; letter-spacing: 0.04em; font-family: inherit; transition: opacity 0.15s; }
-  .btn-primary:disabled { background: #f0f0f0; color: #ccc; cursor: default; }
-  .btn-primary:not(:disabled):hover { opacity: 0.8; }
-  .loading-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; animation: pulse 1.4s ease-in-out infinite; display: inline-block; margin-right: 3px; }
-  @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
-  .empty { font-size: 14px; color: #ccc; text-align: center; padding: 60px 0; }
-  .tag { display: inline-block; background: #f0f0f0; border-radius: 6px; padding: 2px 7px; font-size: 11px; color: #666; font-weight: 500; margin-right: 4px; margin-bottom: 4px; }
-  .session-btn { background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 12px; padding: 14px 18px; width: 100%; text-align: left; cursor: pointer; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-family: inherit; transition: border-color 0.15s; }
-  .session-btn:hover { border-color: #000; }
-  .session-btn.suggested { border-color: #000; background: #fff; }
-  .input-row { display: flex; gap: 8px; margin-top: 8px; }
-  .input-field { flex: 1; background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; color: #000; font-size: 13px; outline: none; font-family: inherit; transition: border-color 0.15s; }
-  .input-field:focus { border-color: #000; background: #fff; }
-  .input-field::placeholder { color: #ccc; }
-  .input-sm { width: 65px; flex: none; }
-  .ex-card { background: #f9f9f9; border: 0.5px solid #e5e5e5; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
-  .ex-name { font-size: 13px; font-weight: 500; color: #000; margin-bottom: 2px; }
-  .ex-note { font-size: 11px; color: #bbb; margin-bottom: 8px; }
-  .divider { height: 0.5px; background: #f0f0f0; margin: 20px 0; }
-  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; }
-  .stat { flex: 1; background: #f9f9f9; border-radius: 10px; padding: 12px 14px; }
-  .stat-val { font-size: 20px; font-weight: 300; color: #000; }
-  .stat-label { font-size: 10px; color: #bbb; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+  body { background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+  .app { background: #fff; color: #000; height: 100vh; max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; }
+
+  .header { padding: 16px 20px 12px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); border-bottom: 0.5px solid #f0f0f0; flex-shrink: 0; }
+  .header-label { font-size: 10px; font-weight: 500; color: #bbb; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 2px; }
+  .header-title { font-size: 22px; font-weight: 300; color: #000; letter-spacing: -0.02em; }
+  .header-sub { font-size: 11px; color: #ccc; margin-top: 2px; display: flex; align-items: center; gap: 8px; }
   .sync-badge { font-size: 11px; color: #bbb; display: flex; align-items: center; gap: 4px; }
   .sync-dot { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; }
 
-  /* Chat styles */
-  .chat-container { display: flex; flex-direction: column; height: 100%; }
-  .chat-messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
-  .chat-input-area { padding: 12px 24px 20px; border-top: 0.5px solid #f0f0f0; flex-shrink: 0; }
-  .user-bubble { align-self: flex-end; background: #000; color: #fff; border-radius: 18px 18px 4px 18px; padding: 10px 16px; font-size: 14px; line-height: 1.5; max-width: 80%; }
-  .specialist-group { display: flex; flex-direction: column; gap: 8px; }
-  .specialist-bubble { background: #f7f7f7; border-radius: 4px 18px 18px 18px; padding: 12px 16px; font-size: 13px; line-height: 1.65; color: #222; max-width: 90%; position: relative; }
-  .specialist-bubble.marcus { background: #000; color: #ddd; border-radius: 12px; padding: 16px 20px; max-width: 100%; }
-  .specialist-name-tag { font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
-  .sp-avatar { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em; flex-shrink: 0; }
-  .loading-indicator { display: flex; align-items: center; gap: 6px; padding: 8px 0; font-size: 12px; color: #ccc; }
-  .chat-textarea { width: 100%; background: #f5f5f5; border: 0.5px solid #e5e5e5; border-radius: 20px; padding: 12px 50px 12px 18px; color: #000; font-size: 14px; line-height: 1.5; resize: none; font-family: inherit; outline: none; transition: border-color 0.15s; max-height: 120px; min-height: 44px; overflow-y: auto; }
-  .chat-textarea:focus { border-color: #000; background: #fff; }
-  .chat-textarea::placeholder { color: #ccc; }
-  .send-btn { position: absolute; right: 8px; bottom: 8px; width: 32px; height: 32px; border-radius: 50%; background: #000; border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .send-btn:disabled { background: #e5e5e5; cursor: default; }
-  .chat-input-wrapper { position: relative; }
-  .panel-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 24px 12px; border-top: 0.5px solid #f5f5f5; flex-shrink: 0; }
-  .chip { display: flex; align-items: center; gap: 5px; background: #f5f5f5; border-radius: 100px; padding: 3px 10px 3px 5px; }
-  .chip-av { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.05em; flex-shrink: 0; }
-  .chip-name { font-size: 11px; color: #888; }
-  input:focus, button:focus, textarea:focus { outline: none; }
+  .nav { display: flex; border-bottom: 0.5px solid #f0f0f0; padding: 0 20px; flex-shrink: 0; }
+  .nav-btn { background: none; border: none; border-bottom: 1.5px solid transparent; padding: 10px 0; margin-right: 24px; font-size: 13px; font-weight: 500; color: #bbb; cursor: pointer; font-family: inherit; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .nav-btn.active { color: #000; border-bottom-color: #000; }
 
-  .content-padded { padding: 28px 40px; }
+  .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .content-padded { padding: 24px 20px; overflow-y: auto; flex: 1; }
+  .section-label { font-size: 10px; font-weight: 600; color: #bbb; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+
+  .chat-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 14px; -webkit-overflow-scrolling: touch; }
+
+  .user-msg-wrap { display: flex; justify-content: flex-end; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .user-directed { font-size: 10px; color: #bbb; padding-right: 4px; }
+  .user-bubble { background: #000; color: #fff; border-radius: 20px 20px 4px 20px; padding: 12px 16px; font-size: 15px; line-height: 1.5; max-width: 82%; word-wrap: break-word; }
+
+  .specialist-row { display: flex; flex-direction: column; gap: 6px; max-width: 90%; }
+  .specialist-meta { display: flex; align-items: center; gap: 8px; padding-left: 2px; }
+  .sp-icon { width: 28px; height: 28px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #444; flex-shrink: 0; letter-spacing: -0.5px; font-family: inherit; }
+  .sp-icon.marcus { background: #000; color: #fff; }
+  .sp-meta-text { display: flex; flex-direction: column; }
+  .sp-name { font-size: 12px; font-weight: 600; color: #222; line-height: 1.3; }
+  .sp-role { font-size: 10px; color: #bbb; line-height: 1.2; }
+  .specialist-bubble { background: #f5f5f5; border-radius: 4px 20px 20px 20px; padding: 12px 16px; font-size: 15px; line-height: 1.65; color: #111; word-wrap: break-word; }
+  .specialist-bubble.marcus-bubble { background: #000; color: #ddd; border-radius: 14px; }
+
+  .thinking-row { display: flex; align-items: center; gap: 8px; }
+  .thinking-dots { display: flex; gap: 4px; background: #f0f0f0; border-radius: 20px; padding: 10px 14px; }
+  .thinking-dot { width: 6px; height: 6px; border-radius: 50%; background: #aaa; animation: bounce 1.2s ease-in-out infinite; }
+  .thinking-dot:nth-child(2) { animation-delay: 0.15s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+  .thinking-label { font-size: 11px; color: #bbb; }
+
+  .direct-bar { padding: 8px 16px 6px; border-top: 0.5px solid #f5f5f5; flex-shrink: 0; }
+  .direct-label { font-size: 10px; color: #ccc; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .direct-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .direct-scroll::-webkit-scrollbar { display: none; }
+  .direct-chip { display: flex; align-items: center; gap: 7px; border-radius: 10px; padding: 6px 11px 6px 7px; cursor: pointer; flex-shrink: 0; border: 0.5px solid #ebebeb; background: #fafafa; font-family: inherit; transition: all 0.15s; }
+  .direct-chip.active { background: #000; border-color: #000; }
+  .direct-chip-icon { width: 22px; height: 22px; border-radius: 6px; background: #e8e8e8; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #555; letter-spacing: -0.5px; flex-shrink: 0; font-family: inherit; }
+  .direct-chip.active .direct-chip-icon { background: #333; color: #fff; }
+  .direct-chip-name { font-size: 12px; font-weight: 600; color: #444; line-height: 1.2; }
+  .direct-chip.active .direct-chip-name { color: #fff; }
+  .direct-chip-role { font-size: 9px; color: #bbb; line-height: 1.2; }
+  .direct-chip.active .direct-chip-role { color: #666; }
+
+  .chat-input-area { padding: 8px 16px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0; background: #fff; }
+  .chat-input-row { display: flex; align-items: flex-end; gap: 10px; }
+  .chat-textarea { flex: 1; background: #f5f5f5; border: none; border-radius: 22px; padding: 11px 16px; color: #000; font-size: 15px; line-height: 1.4; resize: none; font-family: inherit; outline: none; max-height: 100px; min-height: 42px; overflow-y: auto; -webkit-appearance: none; }
+  .chat-textarea::placeholder { color: #bbb; }
+  .send-btn { width: 40px; height: 40px; border-radius: 50%; background: #000; border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.15s; }
+  .send-btn:disabled { background: #e5e5e5; cursor: default; }
+
+  .empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; text-align: center; }
+  .empty-title { font-size: 18px; font-weight: 300; color: #000; margin-bottom: 8px; }
+  .empty-sub { font-size: 13px; color: #bbb; line-height: 1.7; margin-bottom: 28px; max-width: 280px; }
+  .suggestion-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .suggestion-btn { background: #f5f5f5; border: none; border-radius: 20px; padding: 8px 16px; font-size: 13px; color: #555; cursor: pointer; font-family: inherit; }
+
+  .card { background: #fff; border: 0.5px solid #ebebeb; border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
+  .card-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+  .avatar { width: 32px; height: 32px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #444; flex-shrink: 0; letter-spacing: -0.5px; font-family: inherit; }
+  .card-info { flex: 1; }
+  .card-name { font-size: 14px; font-weight: 500; color: #000; font-family: inherit; }
+  .card-sub { font-size: 11px; color: #999; margin-top: 1px; font-family: inherit; }
+  .chevron { font-size: 10px; color: #ccc; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+  .card-body { padding: 12px 16px 16px; border-top: 0.5px solid #f5f5f5; font-size: 14px; color: #555; line-height: 1.7; }
+
+  .stat-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat { flex: 1; background: #f9f9f9; border-radius: 12px; padding: 14px; }
+  .stat-val { font-size: 24px; font-weight: 300; color: #000; }
+  .stat-label { font-size: 10px; color: #bbb; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .session-btn { background: #fff; border: 0.5px solid #ebebeb; border-radius: 14px; padding: 14px 16px; width: 100%; text-align: left; cursor: pointer; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-family: inherit; }
+  .session-btn.suggested { border-color: #000; }
+  .input-row { display: flex; gap: 8px; margin-top: 8px; }
+  .input-field { flex: 1; background: #f5f5f5; border: none; border-radius: 10px; padding: 10px 12px; color: #000; font-size: 14px; outline: none; font-family: inherit; -webkit-appearance: none; }
+  .input-field::placeholder { color: #ccc; }
+  .input-sm { width: 65px; flex: none; }
+  .ex-card { background: #f9f9f9; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .ex-name { font-size: 14px; font-weight: 500; color: #000; margin-bottom: 2px; }
+  .ex-note { font-size: 11px; color: #bbb; margin-bottom: 8px; }
+  .tag { display: inline-block; background: #f0f0f0; border-radius: 6px; padding: 2px 7px; font-size: 11px; color: #666; margin-right: 4px; margin-bottom: 4px; }
+  .divider { height: 0.5px; background: #f5f5f5; margin: 18px 0; }
+  .btn-primary { width: 100%; margin-top: 10px; background: #000; color: #fff; border: none; border-radius: 14px; padding: 15px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .btn-primary:disabled { background: #f0f0f0; color: #ccc; }
+  .profile-text { background: #f9f9f9; border-radius: 14px; padding: 16px 18px; font-size: 13px; color: #444; line-height: 1.9; white-space: pre-wrap; font-family: inherit; margin-bottom: 20px; }
+
+  @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1)} }
+  input:focus, button:focus, textarea:focus { outline: none; }
 `;
 
 // ── SPECIALIST CARD (for history) ─────────────────────────────────────────────
@@ -519,10 +544,12 @@ function SpecialistCard({ id, response }) {
   const [open, setOpen] = useState(false);
   const sp = SPECIALISTS[id];
   if (!sp || !response) return null;
+  const parts = sp.name.replace("Dr. ", "").replace("Chef ", "").split(" ");
+  const mono = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : sp.name.slice(0,2).toUpperCase();
   return (
     <div className="card">
       <button className="card-header" onClick={() => setOpen(o => !o)}>
-        <div className="avatar">{sp.avatar}</div>
+        <div className="avatar">{mono}</div>
         <div className="card-info">
           <div className="card-name">{sp.name}</div>
           <div className="card-sub">{sp.title}</div>
@@ -642,7 +669,7 @@ function ProfileTab({ profile, onAddNote }) {
   return (
     <div className="content-padded">
       <p style={{ fontSize: 13, color: "#999", marginBottom: 16, lineHeight: 1.6 }}>What your panel knows about you. Updates after every conversation. Add anything you want them to know.</p>
-      <div style={{ background: "#f9f9f9", border: "0.5px solid #e5e5e5", borderRadius: 12, padding: "18px 20px", marginBottom: 20, fontSize: 13, color: "#444", lineHeight: 1.9, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+      <div className="profile-text">
         {profile || "No profile yet."}
       </div>
       <div className="section-label">Add a note</div>
@@ -655,18 +682,23 @@ function ProfileTab({ profile, onAddNote }) {
 // ── MAIN CHAT TAB ─────────────────────────────────────────────────────────────
 function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
   const [input, setInput] = useState("");
-  const [directed, setDirected] = useState(null); // null = general, key = specific specialist
+  const [directed, setDirected] = useState(null);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
+  const messagesRef = useRef(null);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading]);
 
   function handleSend() {
     if (!input.trim() || loading) return;
     onSend(input.trim(), directed);
     setInput("");
     setDirected(null);
-    if (textareaRef.current) textareaRef.current.style.height = "44px";
+    if (textareaRef.current) { textareaRef.current.style.height = "42px"; }
   }
 
   function handleKeyDown(e) {
@@ -675,24 +707,91 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
 
   function handleInput(e) {
     setInput(e.target.value);
-    e.target.style.height = "44px";
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+    e.target.style.height = "42px";
+    e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
   }
 
-  const today = new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+  function getMonogram(key) {
+    const sp = SPECIALISTS[key];
+    if (!sp) return "?";
+    const parts = sp.name.replace("Dr. ", "").replace("Chef ", "").split(" ");
+    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : sp.name.slice(0, 2).toUpperCase();
+  }
+
+  const suggestions = ["Slept well last night", "Training this morning", "Stressed about work", "Having lamb for dinner", "Padel match tonight"];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="chat-container">
-      <div className="chat-messages">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+
+      {/* Specialist selector — fixed at top */}
+      <div style={{ flexShrink: 0, borderBottom: "0.5px solid #f0f0f0", padding: "8px 16px" }}>
+        <div style={{ fontSize: 10, color: "#ccc", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+          {directed ? `→ ${SPECIALISTS[directed]?.name} · ${SPECIALISTS[directed]?.title} — tap to clear` : "Direct to a specialist"}
+        </div>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
+          {ACTIVE_SPECIALISTS.map(key => {
+            const sp = SPECIALISTS[key];
+            const isActive = directed === key;
+            const mono = getMonogram(key);
+            return (
+              <button
+                key={key}
+                onClick={() => setDirected(isActive ? null : key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  borderRadius: 10, padding: "5px 10px 5px 6px",
+                  cursor: "pointer", flexShrink: 0,
+                  border: isActive ? "none" : "0.5px solid #ebebeb",
+                  background: isActive ? "#000" : "#fafafa",
+                  fontFamily: "inherit", transition: "all 0.15s",
+                }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: 6,
+                  background: isActive ? "#333" : "#e8e8e8",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 9, fontWeight: 800,
+                  color: isActive ? "#fff" : "#555",
+                  flexShrink: 0, letterSpacing: "-0.5px", fontFamily: "inherit",
+                }}>{mono}</div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: isActive ? "#fff" : "#444", lineHeight: 1.2 }}>{sp.name}</div>
+                  <div style={{ fontSize: 9, color: isActive ? "#888" : "#bbb", lineHeight: 1.2 }}>{sp.title}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Messages — anchored to bottom */}
+      <div
+        ref={messagesRef}
+        style={{
+          flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch",
+          display: "flex", flexDirection: "column",
+          padding: "16px 16px 8px", gap: 14,
+          minHeight: 0,
+        }}
+      >
+        {/* Spacer pushes messages to bottom when few */}
+        <div style={{ flex: 1 }} />
+
         {messages.length === 0 && (
-          <div style={{ textAlign: "center", paddingTop: 40 }}>
-            <div style={{ fontSize: 13, color: "#ccc", lineHeight: 1.8 }}>
-              {today}<br />
-              Just talk. Your panel is listening.
+          <div style={{ textAlign: "center", padding: "20px 8px 8px" }}>
+            <div style={{ fontSize: 18, fontWeight: 300, color: "#000", marginBottom: 8 }}>{greeting}</div>
+            <div style={{ fontSize: 13, color: "#bbb", lineHeight: 1.7, marginBottom: 20, maxWidth: 260, margin: "0 auto 20px" }}>
+              Your panel is ready. Just talk — they'll take what's relevant.
             </div>
-            <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-              {["Slept well last night", "Training this morning", "Stressed about work", "Having lamb for dinner", "Padel match tonight"].map(s => (
-                <button key={s} onClick={() => onSend(s, null)} style={{ background: "#f5f5f5", border: "0.5px solid #e5e5e5", borderRadius: 20, padding: "6px 14px", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+              {suggestions.map(s => (
+                <button key={s} onClick={() => onSend(s, null)} style={{
+                  background: "#f5f5f5", border: "none", borderRadius: 20,
+                  padding: "8px 14px", fontSize: 13, color: "#555",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>{s}</button>
               ))}
             </div>
           </div>
@@ -701,100 +800,111 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
         {messages.map((msg, i) => (
           <div key={i}>
             {msg.role === "user" && (
-              <div style={{ display: "flex", justifyContent: "flex-end", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
                 {msg.directed && (
-                  <div style={{ fontSize: 10, color: "#bbb", marginRight: 4 }}>
-                    → {SPECIALISTS[msg.directed]?.name}
-                  </div>
+                  <div style={{ fontSize: 10, color: "#bbb", paddingRight: 4 }}>→ {SPECIALISTS[msg.directed]?.name}</div>
                 )}
-                <div className="user-bubble">{msg.content}</div>
+                <div style={{
+                  background: "#000", color: "#fff",
+                  borderRadius: "20px 20px 4px 20px",
+                  padding: "12px 16px", fontSize: 15, lineHeight: 1.5,
+                  maxWidth: "82%", wordWrap: "break-word",
+                }}>{msg.content}</div>
               </div>
             )}
             {msg.role === "specialist" && (
-              <div className="specialist-group">
-                <div className={`specialist-bubble ${msg.specialist === "marcus" ? "marcus" : ""}`}>
-                  <div className="specialist-name-tag">
-                    <div className="sp-avatar" style={{ background: SPECIALISTS[msg.specialist]?.avatarColor || "#333" }}>{SPECIALISTS[msg.specialist]?.avatar}</div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: msg.specialist === "marcus" ? "#888" : "#555" }}>{SPECIALISTS[msg.specialist]?.name}</div>
-                      <div style={{ fontSize: 9, color: "#bbb", marginTop: 1 }}>{SPECIALISTS[msg.specialist]?.title}</div>
-                    </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, maxWidth: "88%" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 2 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: msg.specialist === "marcus" ? "#000" : "#f0f0f0",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 800,
+                    color: msg.specialist === "marcus" ? "#fff" : "#444",
+                    flexShrink: 0, letterSpacing: "-0.5px", fontFamily: "inherit",
+                  }}>{getMonogram(msg.specialist)}</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#222", lineHeight: 1.3 }}>{SPECIALISTS[msg.specialist]?.name}</div>
+                    <div style={{ fontSize: 10, color: "#bbb", lineHeight: 1.2 }}>{SPECIALISTS[msg.specialist]?.title}</div>
                   </div>
-                  {msg.content}
                 </div>
+                <div style={{
+                  background: msg.specialist === "marcus" ? "#000" : "#f5f5f5",
+                  color: msg.specialist === "marcus" ? "#ddd" : "#111",
+                  borderRadius: msg.specialist === "marcus" ? 14 : "4px 20px 20px 20px",
+                  padding: "12px 16px", fontSize: 15, lineHeight: 1.65,
+                  wordWrap: "break-word",
+                }}>{msg.content}</div>
               </div>
             )}
           </div>
         ))}
 
         {loading && loadingSpecialists.length > 0 && (
-          <div className="specialist-bubble" style={{ opacity: 0.6, alignSelf: "flex-start" }}>
-            <div className="specialist-name-tag">
-              <div className="sp-avatar" style={{ background: SPECIALISTS[loadingSpecialists[0]]?.avatarColor || "#333" }}>{SPECIALISTS[loadingSpecialists[0]]?.avatar}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, maxWidth: "88%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 2 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8, background: "#f0f0f0",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 800, color: "#444",
+                flexShrink: 0, letterSpacing: "-0.5px", fontFamily: "inherit",
+              }}>{getMonogram(loadingSpecialists[0])}</div>
               <div>
-                <div style={{ fontWeight: 600, color: "#555" }}>{SPECIALISTS[loadingSpecialists[0]]?.name}</div>
-                <div style={{ fontSize: 9, color: "#bbb", marginTop: 1 }}>{SPECIALISTS[loadingSpecialists[0]]?.title} · thinking</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#222", lineHeight: 1.3 }}>{SPECIALISTS[loadingSpecialists[0]]?.name}</div>
+                <div style={{ fontSize: 10, color: "#bbb", lineHeight: 1.2 }}>{SPECIALISTS[loadingSpecialists[0]]?.title}</div>
               </div>
-              <div className="loading-dot" style={{ marginLeft: 6 }} />
+            </div>
+            <div style={{ display: "flex", gap: 5, background: "#f0f0f0", borderRadius: 20, padding: "10px 14px", width: "fit-content" }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{
+                  width: 6, height: 6, borderRadius: "50%", background: "#aaa",
+                  animation: `bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+                }} />
+              ))}
             </div>
           </div>
         )}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Direct selector */}
-      <div style={{ padding: "8px 16px 4px", borderTop: "0.5px solid #f5f5f5", flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: "#ccc", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
-          {directed ? `Directing to ${SPECIALISTS[directed]?.name} — tap to clear` : "Direct to a specialist"}
-        </div>
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
-          {ACTIVE_SPECIALISTS.map(key => {
-            const sp = SPECIALISTS[key];
-            const isSelected = directed === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setDirected(isSelected ? null : key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  background: isSelected ? "#000" : "#f5f5f5",
-                  border: isSelected ? "none" : "0.5px solid #e8e8e8",
-                  borderRadius: 100, padding: "6px 12px 6px 6px",
-                  cursor: "pointer", flexShrink: 0, transition: "all 0.15s",
-                  fontFamily: "inherit",
-                }}
-              >
-                <div style={{
-                  width: 26, height: 26, borderRadius: 7,
-                  background: isSelected ? sp.avatarColor || "#333" : "#e8e8e8",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 9, fontWeight: 700, color: isSelected ? "#fff" : "#888",
-                  letterSpacing: "0.05em", flexShrink: 0,
-                }}>{sp.avatar}</div>
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 11, color: isSelected ? "#fff" : "#555", fontWeight: 600, lineHeight: 1.2 }}>{sp.name}</div>
-                  <div style={{ fontSize: 9, color: isSelected ? "#888" : "#bbb", lineHeight: 1.2 }}>{sp.title}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="chat-input-area">
-        <div className="chat-input-wrapper">
+      {/* Input — fixed at bottom */}
+      <div style={{
+        flexShrink: 0, padding: "8px 16px",
+        paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
+        background: "#fff", borderTop: "0.5px solid #f0f0f0",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
           <textarea
             ref={textareaRef}
-            className="chat-textarea"
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={directed ? `Message ${SPECIALISTS[directed]?.name}…` : "Talk to your panel…"}
             rows={1}
+            style={{
+              flex: 1, background: "#f5f5f5", border: "none", borderRadius: 22,
+              padding: "11px 16px", color: "#000", fontSize: 15, lineHeight: 1.4,
+              resize: "none", fontFamily: "inherit", outline: "none",
+              maxHeight: 100, minHeight: 42, overflowY: "auto",
+              WebkitAppearance: "none",
+            }}
           />
-          <button className="send-btn" onClick={handleSend} disabled={loading || !input.trim()}>→</button>
+          <button
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: loading || !input.trim() ? "#e5e5e5" : "#000",
+              border: "none", color: "#fff", fontSize: 18,
+              cursor: loading || !input.trim() ? "default" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, transition: "background 0.15s",
+            }}
+          >↑</button>
         </div>
       </div>
+
     </div>
   );
 }
@@ -1026,10 +1136,10 @@ export default function App() {
         <div className="header">
           <div className="header-label">Optimal Human</div>
           <div className="header-title">The Panel</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-            <div className="header-sub">{userName ? `${userName} · ` : ""}12 specialists · always on</div>
+          <div className="header-sub">
+            {userName ? `${userName} · ` : ""}12 specialists · always on
             {!syncing && <div className="sync-badge"><div className="sync-dot" />Synced</div>}
-            {syncing && <div className="sync-badge">Syncing…</div>}
+            {syncing && <span style={{ color: "#ddd" }}>Syncing…</span>}
           </div>
         </div>
 
