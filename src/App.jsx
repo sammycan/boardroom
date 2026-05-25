@@ -7,22 +7,51 @@ const supabase = createClient(
 );
 
 // ── AUTH SCREEN ───────────────────────────────────────────────────────────────
-function AuthScreen({ onAuth }) {
+function AuthScreen() {
+  const [mode, setMode] = useState("login"); // login | signup | reset
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
-  async function handleSend() {
-    if (!email.trim() || loading) return;
-    setLoading(true);
-    setError("");
-    const { error: err } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
-    });
+  const inputStyle = {
+    width: "100%", background: "#f5f5f5", border: "none", borderRadius: 14,
+    padding: "16px 18px", fontSize: 16, color: "#000", outline: "none",
+    fontFamily: "inherit", WebkitAppearance: "none", marginBottom: 10,
+    boxSizing: "border-box",
+  };
+
+  const btnStyle = (active) => ({
+    width: "100%", background: active ? "#000" : "#f0f0f0",
+    color: active ? "#fff" : "#ccc", border: "none", borderRadius: 14,
+    padding: 16, fontSize: 15, fontWeight: 500,
+    cursor: active ? "pointer" : "default",
+    fontFamily: "inherit", transition: "all 0.15s", marginTop: 4,
+  });
+
+  async function handleLogin() {
+    if (!email.trim() || !password.trim() || loading) return;
+    setLoading(true); setError("");
+    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (err) { setError(err.message); setLoading(false); }
-    else { setSent(true); setLoading(false); }
+  }
+
+  async function handleSignUp() {
+    if (!email.trim() || !password.trim() || loading) return;
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    setLoading(true); setError("");
+    const { error: err } = await supabase.auth.signUp({ email: email.trim(), password });
+    if (err) { setError(err.message); setLoading(false); }
+    else { setError(""); setMode("login"); setPassword(""); setError("Check your email to confirm your account, then sign in."); setLoading(false); }
+  }
+
+  async function handleReset() {
+    if (!email.trim() || loading) return;
+    setLoading(true); setError("");
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+    if (err) { setError(err.message); setLoading(false); }
+    else { setResetSent(true); setLoading(false); }
   }
 
   return (
@@ -32,58 +61,50 @@ function AuthScreen({ onAuth }) {
       maxWidth: 480, margin: "0 auto",
     }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 32px" }}>
-        <div style={{ marginBottom: 48 }}>
+        <div style={{ marginBottom: 40 }}>
           <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 8 }}>Optimal Human</div>
           <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-0.02em", color: "#000" }}>The Panel</div>
           <div style={{ fontSize: 14, color: "#bbb", marginTop: 8, lineHeight: 1.6 }}>12 specialists. Always on. Always learning you.</div>
         </div>
 
-        {!sent ? (
+        {mode === "reset" ? (
           <>
-            <div style={{ fontSize: 16, fontWeight: 300, color: "#000", marginBottom: 20 }}>Enter your email to sign in</div>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSend()}
-              placeholder="your@email.com"
-              style={{
-                width: "100%", background: "#f5f5f5", border: "none", borderRadius: 14,
-                padding: "16px 18px", fontSize: 16, color: "#000", outline: "none",
-                fontFamily: "inherit", WebkitAppearance: "none", marginBottom: 12,
-                boxSizing: "border-box",
-              }}
-            />
-            {error && <div style={{ fontSize: 13, color: "#e84a2e", marginBottom: 12 }}>{error}</div>}
-            <button
-              onClick={handleSend}
-              disabled={loading || !email.trim()}
-              style={{
-                width: "100%", background: email.trim() && !loading ? "#000" : "#f0f0f0",
-                color: email.trim() && !loading ? "#fff" : "#ccc",
-                border: "none", borderRadius: 14, padding: 16, fontSize: 15,
-                fontWeight: 500, cursor: email.trim() && !loading ? "pointer" : "default",
-                fontFamily: "inherit", transition: "all 0.15s",
-              }}
-            >
-              {loading ? "Sending…" : "Send magic link →"}
-            </button>
-            <div style={{ fontSize: 12, color: "#bbb", marginTop: 16, textAlign: "center", lineHeight: 1.6 }}>
-              We'll send you a link to sign in instantly.<br />No password needed.
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 300, color: "#000", marginBottom: 20 }}>Reset your password</div>
+            {resetSent ? (
+              <div style={{ fontSize: 14, color: "#555", lineHeight: 1.7 }}>Check your email for a password reset link.</div>
+            ) : (
+              <>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={inputStyle} />
+                {error && <div style={{ fontSize: 13, color: "#e84a2e", marginBottom: 8 }}>{error}</div>}
+                <button onClick={handleReset} disabled={loading || !email.trim()} style={btnStyle(!!email.trim() && !loading)}>
+                  {loading ? "Sending…" : "Send reset link →"}
+                </button>
+              </>
+            )}
+            <button onClick={() => { setMode("login"); setError(""); setResetSent(false); }} style={{ background: "none", border: "none", color: "#bbb", fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginTop: 16 }}>← Back to sign in</button>
           </>
         ) : (
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 20 }}>📬</div>
-            <div style={{ fontSize: 18, fontWeight: 300, color: "#000", marginBottom: 12 }}>Check your email</div>
-            <div style={{ fontSize: 14, color: "#bbb", lineHeight: 1.7, marginBottom: 24 }}>
-              We sent a magic link to<br /><strong style={{ color: "#555" }}>{email}</strong><br />Tap it to sign in.
+          <>
+            <div style={{ fontSize: 16, fontWeight: 300, color: "#000", marginBottom: 20 }}>
+              {mode === "login" ? "Sign in to your account" : "Create your account"}
             </div>
-            <button onClick={() => setSent(false)} style={{
-              background: "none", border: "none", color: "#bbb", fontSize: 13,
-              cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
-            }}>Use a different email</button>
-          </div>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignUp())} placeholder="your@email.com" style={inputStyle} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && (mode === "login" ? handleLogin() : handleSignUp())} placeholder="Password" style={inputStyle} />
+            {error && <div style={{ fontSize: 13, color: error.includes("confirm") ? "#22c55e" : "#e84a2e", marginBottom: 8, lineHeight: 1.5 }}>{error}</div>}
+            <button onClick={mode === "login" ? handleLogin : handleSignUp} disabled={loading || !email.trim() || !password.trim()} style={btnStyle(!!email.trim() && !!password.trim() && !loading)}>
+              {loading ? "Please wait…" : mode === "login" ? "Sign in →" : "Create account →"}
+            </button>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
+              <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }} style={{ background: "none", border: "none", color: "#bbb", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                {mode === "login" ? "Create account" : "Sign in instead"}
+              </button>
+              {mode === "login" && (
+                <button onClick={() => { setMode("reset"); setError(""); }} style={{ background: "none", border: "none", color: "#bbb", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                  Forgot password?
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -1231,16 +1252,20 @@ export default function App() {
 
   const userId = authUser?.id;
 
-  // Handle auth state
+  // Handle auth state — including magic link redirects
   useEffect(() => {
+    // First check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthUser(session?.user || null);
       setAuthLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+
+    // Listen for auth changes (handles magic link callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setAuthUser(session?.user || null);
       setAuthLoading(false);
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
