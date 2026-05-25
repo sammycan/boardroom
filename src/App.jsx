@@ -203,6 +203,75 @@ const SPECIALIST_ORDER = ["marcus", "davo", "priya", "jonah", "kai", "sofia", "r
 const ACTIVE_SPECIALISTS = ["davo", "priya", "jonah", "kai", "sofia", "ren", "ellis", "carla", "noah", "sara", "marco"];
 
 
+// ── RESET PASSWORD SCREEN ────────────────────────────────────────────────────
+function ResetPasswordScreen({ onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const inputStyle = {
+    width: "100%", background: "#f5f5f5", border: "none", borderRadius: 14,
+    padding: "16px 18px", fontSize: 16, color: "#000", outline: "none",
+    fontFamily: "inherit", WebkitAppearance: "none", marginBottom: 10,
+    boxSizing: "border-box",
+  };
+
+  async function handleReset() {
+    if (!password.trim() || loading) return;
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirm) { setError("Passwords don't match"); return; }
+    setLoading(true); setError("");
+    const { error: err } = await supabase.auth.updateUser({ password });
+    if (err) { setError(err.message); setLoading(false); }
+    else { setDone(true); setLoading(false); setTimeout(onDone, 2000); }
+  }
+
+  return (
+    <div style={{
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+      background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column",
+      maxWidth: 480, margin: "0 auto",
+    }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 32px" }}>
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 8 }}>Optimal Human</div>
+          <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-0.02em", color: "#000" }}>The Panel</div>
+        </div>
+
+        {done ? (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 300, color: "#000", marginBottom: 8 }}>Password updated</div>
+            <div style={{ fontSize: 14, color: "#bbb" }}>Taking you back to the app…</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 16, fontWeight: 300, color: "#000", marginBottom: 20 }}>Set a new password</div>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="New password" style={inputStyle} />
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} onKeyDown={e => e.key === "Enter" && handleReset()} placeholder="Confirm password" style={inputStyle} />
+            {error && <div style={{ fontSize: 13, color: "#e84a2e", marginBottom: 8 }}>{error}</div>}
+            <button
+              onClick={handleReset}
+              disabled={loading || !password.trim() || !confirm.trim()}
+              style={{
+                width: "100%", marginTop: 4,
+                background: password.trim() && confirm.trim() && !loading ? "#000" : "#f0f0f0",
+                color: password.trim() && confirm.trim() && !loading ? "#fff" : "#ccc",
+                border: "none", borderRadius: 14, padding: 16, fontSize: 15,
+                fontWeight: 500, cursor: password.trim() && confirm.trim() && !loading ? "pointer" : "default",
+                fontFamily: "inherit",
+              }}
+            >
+              {loading ? "Updating…" : "Set password →"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── ONBOARDING ────────────────────────────────────────────────────────────────
 const ONBOARDING_STEPS = [
   {
@@ -1238,6 +1307,7 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
 export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
   const [userName, setUserName] = useState("");
   const [trainingSessions, setTrainingSessions] = useState([]);
@@ -1252,18 +1322,23 @@ export default function App() {
 
   const userId = authUser?.id;
 
-  // Handle auth state — including magic link redirects
+  // Handle auth state
   useEffect(() => {
-    // First check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthUser(session?.user || null);
       setAuthLoading(false);
     });
 
-    // Listen for auth changes (handles magic link callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setAuthUser(session?.user || null);
-      setAuthLoading(false);
+      if (event === "PASSWORD_RECOVERY") {
+        setNeedsPasswordReset(true);
+        setAuthUser(session?.user || null);
+        setAuthLoading(false);
+      } else {
+        setAuthUser(session?.user || null);
+        setAuthLoading(false);
+        if (event === "SIGNED_IN") setNeedsPasswordReset(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -1327,6 +1402,9 @@ export default function App() {
       </div>
     );
   }
+
+  // Show password reset screen if coming from reset email
+  if (needsPasswordReset) return <ResetPasswordScreen onDone={() => setNeedsPasswordReset(false)} />;
 
   // Show auth screen if not logged in
   if (!authUser) return <AuthScreen />;
