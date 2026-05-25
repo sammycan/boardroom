@@ -6,10 +6,88 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_KEY
 );
 
-function getUserId() {
-  let id = localStorage.getItem("br_user_id");
-  if (!id) { id = "user_" + Math.random().toString(36).slice(2, 11); localStorage.setItem("br_user_id", id); }
-  return id;
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
+function AuthScreen({ onAuth }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSend() {
+    if (!email.trim() || loading) return;
+    setLoading(true);
+    setError("");
+    const { error: err } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (err) { setError(err.message); setLoading(false); }
+    else { setSent(true); setLoading(false); }
+  }
+
+  return (
+    <div style={{
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
+      background: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column",
+      maxWidth: 480, margin: "0 auto",
+    }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "40px 32px" }}>
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ fontSize: 11, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 8 }}>Optimal Human</div>
+          <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: "-0.02em", color: "#000" }}>The Panel</div>
+          <div style={{ fontSize: 14, color: "#bbb", marginTop: 8, lineHeight: 1.6 }}>12 specialists. Always on. Always learning you.</div>
+        </div>
+
+        {!sent ? (
+          <>
+            <div style={{ fontSize: 16, fontWeight: 300, color: "#000", marginBottom: 20 }}>Enter your email to sign in</div>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSend()}
+              placeholder="your@email.com"
+              style={{
+                width: "100%", background: "#f5f5f5", border: "none", borderRadius: 14,
+                padding: "16px 18px", fontSize: 16, color: "#000", outline: "none",
+                fontFamily: "inherit", WebkitAppearance: "none", marginBottom: 12,
+                boxSizing: "border-box",
+              }}
+            />
+            {error && <div style={{ fontSize: 13, color: "#e84a2e", marginBottom: 12 }}>{error}</div>}
+            <button
+              onClick={handleSend}
+              disabled={loading || !email.trim()}
+              style={{
+                width: "100%", background: email.trim() && !loading ? "#000" : "#f0f0f0",
+                color: email.trim() && !loading ? "#fff" : "#ccc",
+                border: "none", borderRadius: 14, padding: 16, fontSize: 15,
+                fontWeight: 500, cursor: email.trim() && !loading ? "pointer" : "default",
+                fontFamily: "inherit", transition: "all 0.15s",
+              }}
+            >
+              {loading ? "Sending…" : "Send magic link →"}
+            </button>
+            <div style={{ fontSize: 12, color: "#bbb", marginTop: 16, textAlign: "center", lineHeight: 1.6 }}>
+              We'll send you a link to sign in instantly.<br />No password needed.
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 20 }}>📬</div>
+            <div style={{ fontSize: 18, fontWeight: 300, color: "#000", marginBottom: 12 }}>Check your email</div>
+            <div style={{ fontSize: 14, color: "#bbb", lineHeight: 1.7, marginBottom: 24 }}>
+              We sent a magic link to<br /><strong style={{ color: "#555" }}>{email}</strong><br />Tap it to sign in.
+            </div>
+            <button onClick={() => setSent(false)} style={{
+              background: "none", border: "none", color: "#bbb", fontSize: 13,
+              cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
+            }}>Use a different email</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── PROGRAM ───────────────────────────────────────────────────────────────────
@@ -1137,9 +1215,10 @@ function ChatTab({ messages, onSend, loading, loadingSpecialists }) {
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const userId = getUserId();
-  const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem("br_onboarded"));
-  const [userName, setUserName] = useState(() => localStorage.getItem("br_name") || "");
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [onboarded, setOnboarded] = useState(false);
+  const [userName, setUserName] = useState("");
   const [trainingSessions, setTrainingSessions] = useState([]);
   const [customProgram, setCustomProgram] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -1148,10 +1227,26 @@ export default function App() {
   const [view, setView] = useState("chat");
   const [loading, setLoading] = useState(false);
   const [loadingSpecialists, setLoadingSpecialists] = useState([]);
-  const [syncing, setSyncing] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
+  const userId = authUser?.id;
+
+  // Handle auth state
   useEffect(() => {
-    if (!onboarded) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUser(session?.user || null);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user || null);
+      setAuthLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load data when authenticated
+  useEffect(() => {
+    if (!userId) return;
     async function loadData() {
       setSyncing(true);
       const [{ data: sessions }, { data: convs }, { data: prof }, { data: custom }] = await Promise.all([
@@ -1164,25 +1259,54 @@ export default function App() {
       if (custom) setCustomProgram(custom.map(s => s.session_data));
       if (convs) {
         setConversations(convs);
-        if (convs.length > 0 && convs[0].messages) {
-          setMessages(convs[0].messages);
-        }
+        if (convs.length > 0 && convs[0].messages) setMessages(convs[0].messages);
       }
-      if (prof?.content) setProfile(prof.content);
+      if (prof?.content) {
+        setProfile(prof.content);
+        // Extract name from profile
+        const nameLine = prof.content.split("\n").find(l => l.startsWith("IDENTITY"));
+        const nextLine = prof.content.split("\n")[prof.content.split("\n").indexOf(nameLine) + 1];
+        if (nextLine) setUserName(nextLine.split(".")[0].trim());
+        setOnboarded(true);
+      }
       setSyncing(false);
     }
     loadData();
-  }, [onboarded]);
+  }, [userId]);
 
   async function handleOnboardingComplete(name, generatedProfile) {
     setUserName(name);
     setProfile(generatedProfile);
     setOnboarded(true);
-    localStorage.setItem("br_onboarded", "true");
-    localStorage.setItem("br_name", name);
     await supabase.from("profiles").upsert({ user_id: userId, content: generatedProfile, updated_at: new Date().toISOString() });
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setAuthUser(null);
+    setOnboarded(false);
+    setMessages([]);
+    setTrainingSessions([]);
+    setConversations([]);
+    setProfile(SEED_PROFILE);
+    setUserName("");
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "-apple-system, sans-serif" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[0,1,2].map(i => <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "#000", animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />)}
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth screen if not logged in
+  if (!authUser) return <AuthScreen />;
+
+  // Show onboarding if new user
   if (!onboarded) return <Onboarding onComplete={handleOnboardingComplete} />;
 
   async function handleSaveCustomSession(session) {
@@ -1383,12 +1507,20 @@ export default function App() {
       <style>{CSS}</style>
       <div className="app">
         <div className="header">
-          <div className="header-label">Optimal Human</div>
-          <div className="header-title">The Panel</div>
-          <div className="header-sub">
-            {userName ? `${userName} · ` : ""}12 specialists · always on
-            {!syncing && <div className="sync-badge"><div className="sync-dot" />Synced</div>}
-            {syncing && <span style={{ color: "#ddd" }}>Syncing…</span>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div className="header-label">Optimal Human</div>
+              <div className="header-title">The Panel</div>
+              <div className="header-sub">
+                <span>{userName ? `${userName} · ` : ""}12 specialists · always on</span>
+                {!syncing && <div className="sync-badge"><div className="sync-dot" />Synced</div>}
+                {syncing && <span style={{ color: "#ddd" }}>Syncing…</span>}
+              </div>
+            </div>
+            <button onClick={handleSignOut} style={{
+              background: "none", border: "none", color: "#ccc", fontSize: 12,
+              cursor: "pointer", fontFamily: "inherit", paddingTop: 4, flexShrink: 0,
+            }}>Sign out</button>
           </div>
         </div>
 
